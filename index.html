@@ -255,6 +255,7 @@
     </section>
 
     <section id="resultsPanel" class="panel results-panel" hidden>
+      <div id="printDocument" class="print-document" aria-hidden="true"></div>
       <div id="printCover" class="print-cover" aria-hidden="true">
         <div class="print-cover-header">
           <img src="assets/school-logo.png" alt="شعار مدارس المشكاة الأهلية">
@@ -297,7 +298,7 @@
         </div>
         <div class="actions inline-actions">
           <button id="saveAnalysisButton" class="primary-button save-analysis-button" type="button" hidden>حفظ التحليل</button>
-          <button id="exportButton" class="primary-button" type="button">تصدير Word</button>
+          <button id="exportButton" class="primary-button" type="button">تصدير Word (.doc)</button>
           <button id="printButton" class="secondary-button" type="button">طباعة / PDF</button>
         </div>
       </div>
@@ -323,6 +324,12 @@
       <div id="shortTestsTab" class="tab-content"></div>
     </section>
   </main>
+
+  <div id="pdfFixedFooter" class="pdf-fixed-footer" aria-hidden="true">
+    <span id="pdfFooterSchool">مدارس المشكاة الأهلية</span>
+    <span id="pdfFooterTitle">تحليل النتائج التعليمية</span>
+    <span>إدارة التوجيه الطلابي</span>
+  </div>
 
   <footer class="app-footer">
     <div class="footer-shell">
