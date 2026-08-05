@@ -1599,12 +1599,14 @@ function reportColgroup(headers) {
   return `<colgroup>${weights.map(weight => `<col style="width:${(weight / total * 100).toFixed(3)}%">`).join("")}</colgroup>`;
 }
 function reportChunkSize(headers) {
+  // أحجام محسوبة لتبقى كل كتلة جدول كاملة داخل صفحة A4 قدر الإمكان.
+  // الجداول الأعرض تُقسّم إلى أجزاء أقصر، بدل تمدد الصفوف أو انقسام الجدول.
   const columns = headers.length;
-  if (columns >= 8) return 10;
-  if (columns === 7) return 12;
-  if (columns === 6) return 14;
-  if (columns === 5) return 16;
-  return 18;
+  if (columns >= 8) return 8;
+  if (columns === 7) return 9;
+  if (columns === 6) return 11;
+  if (columns === 5) return 13;
+  return 15;
 }
 function reportTable(headers, rows, options = {}) {
   const safeHeaders = headers.map(item => cleanText(item));
@@ -1701,14 +1703,26 @@ function reportContentHtml(result, brandLogos = {}, options = {}) {
   const guidanceLogo = brandLogos.guidance || BRAND_ASSETS.guidance;
   const classItemsAll = Object.values(result.classes).sort((a, b) => a.grade_number - b.grade_number || Number(a.class_label.split("/")[1] || 0) - Number(b.class_label.split("/")[1] || 0));
   const hasClassAnalysis = mode.supportsClassAnalysis && classItemsAll.length > 0;
-  let content = `
+  const coverContent = `
     <div class="report-cover">
-      <div class="cover-badge">تقرير تحليلي معتمد</div>
+      <div class="cover-brand-row">
+        <div class="cover-logo-box"><img src="${schoolLogo}" alt="شعار مدارس المشكاة الأهلية"></div>
+        <div class="cover-brand-copy"><span>المملكة العربية السعودية · وزارة التعليم</span><strong>${escapeHtml(school)}</strong><small>إدارة التوجيه الطلابي</small></div>
+        <div class="cover-logo-box guidance"><img src="${guidanceLogo}" alt="شعار التوجيه الطلابي"></div>
+      </div>
       <div class="cover-rule"><i></i><i></i><i></i></div>
-      <div class="cover-title"><h1>${escapeHtml(title)}</h1><h2>${escapeHtml(school)}</h2><p>${escapeHtml([period, year].filter(Boolean).join(" - "))}</p></div>
-      <div class="cover-metrics"><div><span>نوع التحليل</span><strong>${escapeHtml(mode.name)}</strong></div><div><span>إجمالي الطلاب</span><strong>${result.overall.total.toLocaleString("ar-EG")}</strong></div><div><span>تاريخ الإصدار</span><strong>${new Date().toLocaleDateString("ar-SA")}</strong></div></div>
-      <div class="cover-note">أُعد هذا التقرير إلكترونيًا من منصة تحليل النتائج التعليمية بمدارس المشكاة الأهلية.</div>
+      <div class="cover-badge">تقرير تحليلي معتمد</div>
+      <div class="cover-title"><h1>${escapeHtml(title)}</h1><h2>${escapeHtml([period, year].filter(Boolean).join(" - ") || mode.name)}</h2><p>قراءة إحصائية وتربوية لمؤشرات التحصيل الدراسي</p></div>
+      <div class="cover-metrics">
+        <div><span>نوع التحليل</span><strong>${escapeHtml(mode.name)}</strong></div>
+        <div><span>إجمالي الطلاب</span><strong>${result.overall.total.toLocaleString("ar-EG")}</strong></div>
+        <div><span>المتوسط العام</span><strong>${formatNumber(result.overall.average)}%</strong></div>
+        <div><span>تاريخ الإصدار</span><strong>${new Date().toLocaleDateString("ar-SA")}</strong></div>
+      </div>
+      <div class="cover-seal"><span>مدارس المشكاة الأهلية</span><b>منصة تحليل النتائج التعليمية</b></div>
+      <div class="cover-note">أُعد هذا التقرير إلكترونيًا، وتُستخدم بياناته لدعم القرار التربوي وخطط التحسين والمتابعة.</div>
     </div>`;
+  let content = "";
 
   content += reportSection("أهداف التقرير وآلية الإعداد", `
     <div class="two-column-block"><div><h3>أهداف التقرير</h3>${reportList(objectives)}</div><div><h3>آلية إعداد التقرير</h3>${reportList(mechanism)}</div></div>
@@ -1800,8 +1814,8 @@ function reportContentHtml(result, brandLogos = {}, options = {}) {
   content += `<div class="report-closing"><div><strong>مدارس المشكاة الأهلية</strong><span>إدارة التوجيه الطلابي</span></div><div class="signature-lines"><span>المعدّ</span><span>المراجع</span><span>مدير المدرسة</span></div></div>`;
 
   const wordMode = Boolean(options.wordMode);
-  if (wordMode) return `${reportHeaderHtml(schoolLogo, guidanceLogo, school, title, true)}${reportFooterHtml(school, title, true)}<div class="report-pages Section1">${content}</div>`;
-  return `<table class="print-page-frame" role="presentation"><thead><tr><td class="page-frame-cell">${reportHeaderHtml(schoolLogo, guidanceLogo, school, title, false)}</td></tr></thead><tbody>${reportFrameRows(content)}</tbody></table>`;
+  if (wordMode) return `${reportHeaderHtml(schoolLogo, guidanceLogo, school, title, true)}${reportFooterHtml(school, title, true)}<div class="report-pages Section1">${coverContent}${content}</div>`;
+  return `<div class="print-cover-only">${coverContent}</div><table class="print-page-frame" role="presentation"><thead><tr><td class="page-frame-cell">${reportHeaderHtml(schoolLogo, guidanceLogo, school, title, false)}</td></tr></thead><tfoot><tr><td class="page-frame-cell">${reportFooterHtml(school, title, false)}</td></tr></tfoot><tbody>${reportFrameRows(content)}</tbody></table>`;
 }
 function reportDocumentStyles() {
   return `
@@ -1882,7 +1896,7 @@ function docxCell(text, width, options = {}) {
     line: options.line || 270,
     keepLines: true
   });
-  return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/>${shading}${borders}<w:vAlign w:val="center"/><w:tcMar><w:top w:w="80" w:type="dxa"/><w:left w:w="70" w:type="dxa"/><w:bottom w:w="80" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tcMar></w:tcPr>${paragraph}</w:tc>`;
+  return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/>${shading}${borders}<w:vAlign w:val="center"/><w:tcMar><w:top w:w="45" w:type="dxa"/><w:left w:w="55" w:type="dxa"/><w:bottom w:w="45" w:type="dxa"/><w:right w:w="55" w:type="dxa"/></w:tcMar></w:tcPr>${paragraph}</w:tc>`;
 }
 function docxColumnWidths(headers, totalWidth = 10440) {
   const weights = reportColumnWeights(headers);
@@ -1893,25 +1907,27 @@ function docxColumnWidths(headers, totalWidth = 10440) {
   return widths;
 }
 function docxTableXml(headers, rows, options = {}) {
-  const widths = docxColumnWidths(headers, options.totalWidth || 10440);
+  const tableWidth = Number(options.totalWidth || 10080);
+  const widths = docxColumnWidths(headers, tableWidth);
   const grid = widths.map(width => `<w:gridCol w:w="${width}"/>`).join("");
-  const border = '<w:tblBorders><w:top w:val="single" w:sz="8" w:color="9BABB3"/><w:left w:val="single" w:sz="8" w:color="9BABB3"/><w:bottom w:val="single" w:sz="8" w:color="39752F"/><w:right w:val="single" w:sz="8" w:color="9BABB3"/><w:insideH w:val="single" w:sz="6" w:color="AEBCC3"/><w:insideV w:val="single" w:sz="6" w:color="AEBCC3"/></w:tblBorders>';
-  const headerCells = headers.map((header, index) => docxCell(header, widths[index], {shading: "0B628F", color: "FFFFFF", bold: true, size: 17})).join("");
-  const headerRow = `<w:tr><w:trPr><w:tblHeader/><w:cantSplit/><w:trHeight w:val="430" w:hRule="atLeast"/></w:trPr>${headerCells}</w:tr>`;
+  const border = '<w:tblBorders><w:top w:val="single" w:sz="7" w:color="8FA3AD"/><w:left w:val="single" w:sz="7" w:color="8FA3AD"/><w:bottom w:val="single" w:sz="11" w:color="39752F"/><w:right w:val="single" w:sz="7" w:color="8FA3AD"/><w:insideH w:val="single" w:sz="5" w:color="B7C4CA"/><w:insideV w:val="single" w:sz="5" w:color="B7C4CA"/></w:tblBorders>';
+  const headerCells = headers.map((header, index) => docxCell(header, widths[index], {shading: "0B628F", color: "FFFFFF", bold: true, size: headers.length >= 8 ? 14 : 15, line: 225})).join("");
+  const headerRow = `<w:tr><w:trPr><w:tblHeader/><w:cantSplit/><w:trHeight w:val="360" w:hRule="atLeast"/></w:trPr>${headerCells}</w:tr>`;
   const nameColumns = headers.map((header, index) => /اسم الطالب|المادة/.test(cleanText(header)) ? index : -1).filter(index => index >= 0);
   const bodyRows = (rows.length ? rows : [["لا توجد بيانات.", ...Array(Math.max(0, headers.length - 1)).fill("")]]).map((row, rowIndex) => {
-    const shading = rowIndex % 2 ? "F4F8FA" : "FFFFFF";
+    const shading = rowIndex % 2 ? "F3F7F9" : "FFFFFF";
     const last = rowIndex === rows.length - 1;
     const cells = headers.map((_, cellIndex) => docxCell(row[cellIndex] ?? "", widths[cellIndex], {
       shading,
       align: nameColumns.includes(cellIndex) ? "right" : "center",
-      size: headers.length >= 8 ? 15 : headers.length >= 6 ? 16 : 17,
+      size: headers.length >= 8 ? 13 : headers.length >= 6 ? 14 : 15,
+      line: headers.length >= 8 ? 210 : 225,
       borderBottom: last ? "39752F" : null,
-      borderBottomSize: last ? 14 : 0
+      borderBottomSize: last ? 12 : 0
     })).join("");
-    return `<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="390" w:hRule="atLeast"/></w:trPr>${cells}</w:tr>`;
+    return `<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="330" w:hRule="atLeast"/></w:trPr>${cells}</w:tr>`;
   }).join("");
-  return `<w:tbl><w:tblPr><w:tblW w:w="10440" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:bidiVisual/>${border}<w:tblCellMar><w:top w:w="50" w:type="dxa"/><w:left w:w="50" w:type="dxa"/><w:bottom w:w="50" w:type="dxa"/><w:right w:w="50" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${headerRow}${bodyRows}</w:tbl>`;
+  return `<w:tbl><w:tblPr><w:tblW w:w="${tableWidth}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:jc w:val="center"/><w:bidiVisual/><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/>${border}<w:tblCellMar><w:top w:w="35" w:type="dxa"/><w:left w:w="45" w:type="dxa"/><w:bottom w:w="35" w:type="dxa"/><w:right w:w="45" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${headerRow}${bodyRows}</w:tbl>`;
 }
 function docxTableBlocks(headers, rows, options = {}) {
   const chunkSize = Number(options.chunkSize || reportChunkSize(headers));
@@ -1926,8 +1942,10 @@ function docxTableBlocks(headers, rows, options = {}) {
     return xml;
   }).join("");
 }
+let docxDrawingIdCounter = 1;
 function docxImageRun(relId, cx, cy, name) {
-  return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="1" name="${docxXmlEscape(name)}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="${docxXmlEscape(name)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+  const drawingId = docxDrawingIdCounter++;
+  return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${drawingId}" name="${docxXmlEscape(name)}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="${docxXmlEscape(name)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" r:embed="${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
 }
 function docxImageParagraph(relId, cx, cy, name, align = "center") {
   return `<w:p><w:pPr><w:bidi/><w:jc w:val="${align}"/><w:spacing w:before="0" w:after="0"/></w:pPr>${docxImageRun(relId, cx, cy, name)}</w:p>`;
@@ -1942,14 +1960,30 @@ function docxFooterXml(school, reportTitle) {
   const pageParagraph = `<w:p><w:pPr><w:bidi/><w:jc w:val="left"/><w:spacing w:before="0" w:after="0"/></w:pPr>${docxRun("صفحة ", {size: 14, color: "617784"})}${docxFieldRun("PAGE")}${docxRun(" من ", {size: 14, color: "617784"})}${docxFieldRun("NUMPAGES")}</w:p>`;
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:tbl><w:tblPr><w:tblW w:w="10440" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:bidiVisual/><w:tblBorders><w:top w:val="single" w:sz="10" w:color="0B628F"/><w:bottom w:val="nil"/><w:left w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="3000"/><w:gridCol w:w="4440"/><w:gridCol w:w="3000"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/></w:tcPr>${docxParagraph(school, {size: 14, color: "073F65", bold: true, align: "right", after: 0})}</w:tc><w:tc><w:tcPr><w:tcW w:w="4440" w:type="dxa"/></w:tcPr>${docxParagraph(reportTitle, {size: 13, color: "617784", align: "center", after: 0})}</w:tc><w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/></w:tcPr>${pageParagraph}</w:tc></w:tr></w:tbl></w:ftr>`;
 }
+function docxCoverBrandXml(school) {
+  const noBorders = '<w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders>';
+  return `<w:tbl><w:tblPr><w:tblW w:w="10080" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:jc w:val="center"/><w:bidiVisual/>${noBorders}</w:tblPr><w:tblGrid><w:gridCol w:w="2200"/><w:gridCol w:w="5680"/><w:gridCol w:w="2200"/></w:tblGrid><w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="1780" w:hRule="atLeast"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${docxImageParagraph("rIdCoverSchool", 1180000, 1030000, "شعار مدارس المشكاة الأهلية", "center")}</w:tc><w:tc><w:tcPr><w:tcW w:w="5680" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${docxParagraph("المملكة العربية السعودية", {align: "center", size: 16, color: "687D88", bold: true, after: 20, line: 210})}${docxParagraph("وزارة التعليم", {align: "center", size: 15, color: "687D88", after: 25, line: 210})}${docxParagraph(school, {align: "center", size: 25, color: "073F65", bold: true, after: 20, line: 300})}${docxParagraph("إدارة التوجيه الطلابي", {align: "center", size: 18, color: "39752F", bold: true, after: 0, line: 230})}</w:tc><w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>${docxImageParagraph("rIdCoverGuidance", 1450000, 780000, "شعار التوجيه الطلابي", "center")}</w:tc></w:tr></w:tbl>`;
+}
+function docxCoverMetricCell(label, value, width, fill = "F4FAFC", accent = "0B628F") {
+  return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="${fill}"/><w:tcBorders><w:top w:val="single" w:sz="7" w:color="CBDDE5"/><w:left w:val="single" w:sz="7" w:color="CBDDE5"/><w:bottom w:val="single" w:sz="7" w:color="${accent}"/><w:right w:val="single" w:sz="7" w:color="CBDDE5"/></w:tcBorders><w:vAlign w:val="center"/><w:tcMar><w:top w:w="130" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="130" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tcMar></w:tcPr>${docxParagraph(label, {align: "center", size: 14, color: "687D88", bold: true, after: 25, line: 190})}${docxParagraph(value, {align: "center", size: 20, color: accent, bold: true, after: 0, line: 250})}</w:tc>`;
+}
+function docxCoverMetricsXml(result, mode) {
+  const width = 2520;
+  const date = new Date().toLocaleDateString("ar-SA");
+  return `<w:tbl><w:tblPr><w:tblW w:w="10080" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:jc w:val="center"/><w:bidiVisual/><w:tblCellSpacing w:w="90" w:type="dxa"/><w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr><w:tblGrid>${Array(4).fill(`<w:gridCol w:w="${width}"/>`).join("")}</w:tblGrid><w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="1050" w:hRule="atLeast"/></w:trPr>${docxCoverMetricCell("نوع التحليل", mode.name, width)}${docxCoverMetricCell("إجمالي الطلاب", result.overall.total.toLocaleString("ar-EG"), width)}${docxCoverMetricCell("المتوسط العام", `${formatNumber(result.overall.average)}%`, width, "F3FAEF", "39752F")}${docxCoverMetricCell("تاريخ الإصدار", date, width, "FFF8EA", "B45309")}</w:tr></w:tbl>`;
+}
 function docxCoverXml(result, title, school, period, year, mode) {
   let xml = "";
-  xml += docxParagraph("تقرير تحليلي معتمد", {align: "center", size: 20, color: "39752F", bold: true, shading: "EEF7E9", before: 1600, after: 350, line: 260});
-  xml += docxParagraph(title, {align: "center", size: 48, color: "073F65", bold: true, before: 500, after: 240, line: 560, keepLines: true});
-  xml += docxParagraph(school, {align: "center", size: 32, color: "39752F", bold: true, after: 140, line: 400});
-  xml += docxParagraph([period, year].filter(Boolean).join(" - "), {align: "center", size: 22, color: "657B86", after: 600});
-  xml += docxTableXml(["نوع التحليل", "إجمالي الطلاب", "تاريخ الإصدار"], [[mode.name, result.overall.total.toLocaleString("ar-EG"), new Date().toLocaleDateString("ar-SA")]], {totalWidth: 9000});
-  xml += docxParagraph("أُعد هذا التقرير إلكترونيًا من منصة تحليل النتائج التعليمية بمدارس المشكاة الأهلية.", {align: "center", size: 15, color: "71848E", before: 900, after: 0});
+  xml += docxCoverBrandXml(school);
+  xml += docxParagraph("", {align: "center", size: 2, borderBottom: "0B628F", before: 40, after: 180});
+  xml += docxParagraph("تقرير تحليلي معتمد", {align: "center", size: 18, color: "39752F", bold: true, shading: "EEF7E9", before: 180, after: 210, line: 230});
+  xml += docxParagraph(title, {align: "center", size: 46, color: "073F65", bold: true, before: 150, after: 130, line: 520, keepLines: true});
+  xml += docxParagraph([period, year].filter(Boolean).join(" - ") || mode.name, {align: "center", size: 25, color: "39752F", bold: true, after: 90, line: 320});
+  xml += docxParagraph("قراءة إحصائية وتربوية لمؤشرات التحصيل الدراسي", {align: "center", size: 18, color: "657B86", after: 360, line: 240});
+  xml += docxCoverMetricsXml(result, mode);
+  xml += docxParagraph("مدارس المشكاة الأهلية", {align: "center", size: 23, color: "073F65", bold: true, before: 600, after: 20, line: 280});
+  xml += docxParagraph("منصة تحليل النتائج التعليمية · إدارة التوجيه الطلابي", {align: "center", size: 16, color: "39752F", bold: true, after: 220, line: 220});
+  xml += docxParagraph("أُعد هذا التقرير إلكترونيًا لدعم القرار التربوي وخطط التحسين والمتابعة.", {align: "center", size: 14, color: "71848E", borderBottom: "CBDDE5", after: 0, line: 210});
   xml += docxPageBreak();
   return xml;
 }
@@ -2000,10 +2034,12 @@ function buildDocxDocumentXml(result) {
         body += docxHeading(`العشرة الأوائل - ${grade.grade_name}`, 2, true);
         body += docxTableBlocks(["الترتيب", "اسم الطالب", "الفصل", "المعدل"], grade.top_students.map(item => [item.rank, item.student_name, item.class_label, `${formatNumber(item.average)}%`]), {title: `العشرة الأوائل - ${grade.grade_name}`});
         body += docxHeading(`أفضل خمسة طلاب في فصول ${grade.grade_name}`, 2, true);
-        for (const classItem of classItems) {
+        classItems.forEach((classItem, classIndex) => {
+          // مجموعتان صغيرتان في كل صفحة كحد أقصى؛ لتبقى كل طاولة كاملة دون انقسام.
+          if (classIndex > 0 && classIndex % 2 === 0) body += docxPageBreak();
           body += docxHeading(`الفصل ${classItem.class_label}`, 3, false);
           body += docxTableBlocks(["الترتيب", "اسم الطالب", "المعدل", "التقدير"], classItem.top_students.map(item => [item.rank, item.student_name, `${formatNumber(item.average)}%`, item.category]), {title: `أفضل خمسة - الفصل ${classItem.class_label}`, chunkSize: 8});
-        }
+        });
       }
     }
   }
@@ -2053,8 +2089,8 @@ function buildDocxDocumentXml(result) {
   body += docxParagraph("مدارس المشكاة الأهلية", {align: "center", size: 24, color: "073F65", bold: true, borderBottom: "0B628F", before: 500, after: 40, keepLines: true});
   body += docxParagraph("إدارة التوجيه الطلابي", {align: "center", size: 18, color: "39752F", bold: true, after: 500});
   body += docxTableXml(["المعدّ", "المراجع", "مدير المدرسة"], [["", "", ""]], {totalWidth: 9000});
-  const sectPr = '<w:sectPr><w:headerReference w:type="default" r:id="rIdHeader"/><w:footerReference w:type="default" r:id="rIdFooter"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1320" w:right="720" w:bottom="1080" w:left="720" w:header="300" w:footer="300" w:gutter="0"/><w:cols w:space="720"/><w:docGrid w:linePitch="360"/></w:sectPr>';
-  return {xml: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${body}${sectPr}</w:body></w:document>`, school, title};
+  const sectPr = '<w:sectPr><w:titlePg/><w:headerReference w:type="default" r:id="rIdHeader"/><w:footerReference w:type="default" r:id="rIdFooter"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1320" w:right="720" w:bottom="1080" w:left="720" w:header="300" w:footer="300" w:gutter="0"/><w:cols w:space="720"/><w:docGrid w:linePitch="360"/></w:sectPr>';
+  return {xml: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${body}${sectPr}</w:body></w:document>`, school, title};
 }
 function docxStylesXml() {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Cairo" w:hAnsi="Cairo" w:eastAsia="Cairo" w:cs="Cairo"/><w:sz w:val="20"/><w:szCs w:val="20"/><w:rtl/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:bidi/><w:jc w:val="right"/><w:spacing w:after="100" w:line="330" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style></w:styles>`;
@@ -2116,6 +2152,7 @@ function zipStore(files) {
   return concatBytes([...localParts, centralData, end]);
 }
 function buildDocxPackage(result, brandLogos) {
+  docxDrawingIdCounter = 1;
   const document = buildDocxDocumentXml(result);
   const schoolBytes = dataUrlToBytes(brandLogos.school);
   const guidanceBytes = dataUrlToBytes(brandLogos.guidance);
@@ -2128,7 +2165,7 @@ function buildDocxPackage(result, brandLogos) {
     {name: "word/settings.xml", data: docxSettingsXml()},
     {name: "word/header1.xml", data: docxHeaderXml(document.school, document.title)},
     {name: "word/footer1.xml", data: docxFooterXml(document.school, document.title)},
-    {name: "word/_rels/document.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdHeader" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/></Relationships>`},
+    {name: "word/_rels/document.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdHeader" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/><Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/><Relationship Id="rIdCoverSchool" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/school-logo.png"/><Relationship Id="rIdCoverGuidance" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/student-guidance-logo.png"/></Relationships>`},
     {name: "word/_rels/header1.xml.rels", data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdSchool" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/school-logo.png"/><Relationship Id="rIdGuidance" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/student-guidance-logo.png"/></Relationships>`},
     {name: "word/media/school-logo.png", data: schoolBytes},
     {name: "word/media/student-guidance-logo.png", data: guidanceBytes},
@@ -2149,17 +2186,16 @@ async function downloadWord() {
   el.exportButton.textContent = "جارٍ تجهيز ملف Word...";
   try {
     const brandLogos = await getBrandData();
-    // نستخدم مستند HTML متوافقًا مباشرة مع Microsoft Word. هذا الأسلوب
-    // أكثر ثباتًا داخل GitHub Pages والمتصفحات من إنشاء حزمة DOCX يدويًا،
-    // ويحافظ على A4 والهيدر والفوتر والجداول والألوان واللغة العربية.
-    const html = wordReportHtml(state.result, brandLogos);
-    const blob = new Blob(["\ufeff", html], {type: "application/msword;charset=utf-8"});
+    // إنشاء ملف DOCX حقيقي بهيكل OOXML كامل. هذا يمنح Word تحكمًا أدق
+    // في مقاس A4، وصفحة الغلاف، والهيدر والفوتر، وثبات عرض الجداول والخلايا.
+    const docxBytes = buildDocxPackage(state.result, brandLogos);
+    const blob = new Blob([docxBytes], {type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
     const metadata = state.result.metadata || {};
     const school = metadata.school_name || state.result.school_name_detected || "المدرسة";
     const title = metadata.report_title || MODES[state.mode]?.reportTitle || state.result.mode_name || "تحليل النتائج";
     const safeSchool = String(school).replace(/[\\/:*?"<>|]/g, "").trim().slice(0, 50) || "المدرسة";
     const safeTitle = String(title).replace(/[\\/:*?"<>|]/g, "").trim().slice(0, 60) || "تحليل النتائج";
-    const filename = `${safeTitle} - ${safeSchool}.doc`;
+    const filename = `${safeTitle} - ${safeSchool}.docx`;
 
     // دعم المتصفحات القديمة والجديدة مع تأخير إلغاء الرابط حتى يكتمل التنزيل.
     if (typeof navigator !== "undefined" && navigator.msSaveOrOpenBlob) {
@@ -2178,7 +2214,7 @@ async function downloadWord() {
         URL.revokeObjectURL(url);
       }, 30000);
     }
-    showStatus("تم تجهيز تقرير Word وتنزيله. افتحه باستخدام Microsoft Word.");
+    showStatus("تم تجهيز تقرير Word بصيغة DOCX وتنزيله بنجاح.");
   } catch (error) {
     console.error(error);
     showStatus(`تعذر تجهيز تقرير Word: ${error?.message || "خطأ غير معروف"}.`, true);
@@ -2427,4 +2463,4 @@ setupTabs();
 renderFileList();
 initDatabase();
 
-window.__APP_TEST__ = {selectMode, parseWorkbook, analyzeRecords, classifyAverage, parseTabularPeriodSheet, extractSubjectDetails, finalizeFinalExamRecords, inferFinalExamMax, mergePeriodRecords, inferGrade, inferClassNumber, gradeOrdinal, makeClassLabel, gradeOptionsHtml, categoriesWithData, categoryLabel, formatArabicList, renderOverview, renderClasses, wordReportHtml, buildDocxPackage, getMode: id => MODES[id], getState: () => state};
+window.__APP_TEST__ = {selectMode, parseWorkbook, analyzeRecords, classifyAverage, parseTabularPeriodSheet, extractSubjectDetails, finalizeFinalExamRecords, inferFinalExamMax, mergePeriodRecords, inferGrade, inferClassNumber, gradeOrdinal, makeClassLabel, gradeOptionsHtml, categoriesWithData, categoryLabel, formatArabicList, renderOverview, renderClasses, reportContentHtml, wordReportHtml, buildDocxPackage, getMode: id => MODES[id], getState: () => state};
