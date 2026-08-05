@@ -77,7 +77,12 @@ const MODES = {
 };
 
 const decoder = new TextDecoder("utf-8");
-const state = {mode: null, files: [], result: null};
+const state = {mode: null, files: [], result: null, user: null, profile: null, archive: []};
+const SUPABASE_URL = "https://fpicgtldwfevdvpbxkjf.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_3C7eKHRkzE2T-OLOpfue4g_i3u4R7Ay";
+const db = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {persistSession: true, autoRefreshToken: true, detectSessionInUrl: true}
+});
 const BRAND_ASSETS = {
   school: "assets/school-logo.png",
   guidance: "assets/student-guidance-logo.png"
@@ -152,7 +157,25 @@ const el = {
   finalExamsTab: document.getElementById("finalExamsTab"),
   printReportTitle: document.getElementById("printReportTitle"),
   printSchoolName: document.getElementById("printSchoolName"),
-  printPeriodYear: document.getElementById("printPeriodYear")
+  printPeriodYear: document.getElementById("printPeriodYear"),
+  authGuest: document.getElementById("authGuest"),
+  authUser: document.getElementById("authUser"),
+  authEmail: document.getElementById("authEmail"),
+  authPassword: document.getElementById("authPassword"),
+  authFullName: document.getElementById("authFullName"),
+  signInButton: document.getElementById("signInButton"),
+  signUpButton: document.getElementById("signUpButton"),
+  signOutButton: document.getElementById("signOutButton"),
+  currentUserName: document.getElementById("currentUserName"),
+  currentUserRole: document.getElementById("currentUserRole"),
+  databaseStatus: document.getElementById("databaseStatus"),
+  openArchiveButton: document.getElementById("openArchiveButton"),
+  archivePanel: document.getElementById("archivePanel"),
+  archiveSearch: document.getElementById("archiveSearch"),
+  archiveTypeFilter: document.getElementById("archiveTypeFilter"),
+  refreshArchiveButton: document.getElementById("refreshArchiveButton"),
+  archiveList: document.getElementById("archiveList"),
+  saveAnalysisButton: document.getElementById("saveAnalysisButton")
 };
 
 function escapeHtml(value) {
@@ -1509,6 +1532,7 @@ function renderShortTests(result) {
 
 function renderResult(result) {
   state.result = result;
+  if (el.saveAnalysisButton) el.saveAnalysisButton.hidden = !(state.user && state.profile?.role === "admin");
   const mode = MODES[result.mode_id];
   el.resultsPanel.hidden = false;
   const hasClassAnalysis = mode.supportsClassAnalysis && Object.keys(result.classes).length > 0;
@@ -1766,6 +1790,162 @@ function setupTabs() {
   }));
 }
 
+
+function showDatabaseStatus(message, isError = false) {
+  el.databaseStatus.hidden = false;
+  el.databaseStatus.textContent = message;
+  el.databaseStatus.classList.toggle("error", isError);
+}
+function hideDatabaseStatus() { el.databaseStatus.hidden = true; }
+function roleLabel(role) { return role === "admin" ? "مدير — حفظ وتعديل وحذف" : "مستخدم عرض — فتح وتصدير فقط"; }
+function modeDbName(mode) { return MODES[mode]?.name || mode; }
+async function loadProfile(user) {
+  if (!db || !user) return null;
+  const {data, error} = await db.from("profiles").select("id,full_name,role,is_active").eq("id", user.id).single();
+  if (error) throw error;
+  return data;
+}
+async function applySession(session) {
+  state.user = session?.user || null;
+  state.profile = null;
+  if (state.user) {
+    try { state.profile = await loadProfile(state.user); }
+    catch (error) { console.error(error); showDatabaseStatus("تم تسجيل الدخول، لكن تعذر تحميل الصلاحيات.", true); }
+  }
+  const loggedIn = Boolean(state.user && state.profile?.is_active);
+  el.authGuest.hidden = loggedIn;
+  el.authUser.hidden = !loggedIn;
+  if (loggedIn) {
+    el.currentUserName.textContent = state.profile.full_name || state.user.email;
+    el.currentUserRole.textContent = roleLabel(state.profile.role);
+    if (el.saveAnalysisButton) el.saveAnalysisButton.hidden = !(state.result && state.profile.role === "admin");
+  } else {
+    el.archivePanel.hidden = true;
+    if (el.saveAnalysisButton) el.saveAnalysisButton.hidden = true;
+  }
+}
+async function signIn() {
+  hideDatabaseStatus();
+  const email = el.authEmail.value.trim();
+  const password = el.authPassword.value;
+  if (!email || !password) return showDatabaseStatus("أدخل البريد الإلكتروني وكلمة المرور.", true);
+  el.signInButton.disabled = true;
+  try {
+    const {data, error} = await db.auth.signInWithPassword({email, password});
+    if (error) throw error;
+    await applySession(data.session);
+    showDatabaseStatus("تم تسجيل الدخول بنجاح.");
+  } catch (error) { showDatabaseStatus(error.message || "تعذر تسجيل الدخول.", true); }
+  finally { el.signInButton.disabled = false; }
+}
+async function signUp() {
+  hideDatabaseStatus();
+  const email = el.authEmail.value.trim();
+  const password = el.authPassword.value;
+  const full_name = el.authFullName.value.trim();
+  if (!email || !password || !full_name) return showDatabaseStatus("أدخل الاسم والبريد وكلمة المرور لإنشاء الحساب.", true);
+  if (password.length < 6) return showDatabaseStatus("كلمة المرور يجب ألا تقل عن 6 أحرف.", true);
+  el.signUpButton.disabled = true;
+  try {
+    const {data, error} = await db.auth.signUp({email, password, options: {data: {full_name}}});
+    if (error) throw error;
+    if (data.session) {
+      await applySession(data.session);
+      showDatabaseStatus("تم إنشاء الحساب وتسجيل الدخول. أول حساب في القاعدة يحصل على صلاحية المدير تلقائيًا.");
+    } else showDatabaseStatus("تم إنشاء الحساب. افتح رسالة تأكيد البريد الإلكتروني ثم سجّل الدخول.");
+  } catch (error) { showDatabaseStatus(error.message || "تعذر إنشاء الحساب.", true); }
+  finally { el.signUpButton.disabled = false; }
+}
+async function signOut() {
+  await db.auth.signOut();
+  await applySession(null);
+  showDatabaseStatus("تم تسجيل الخروج.");
+}
+function buildSavedPayload() {
+  const r = state.result;
+  if (!r) throw new Error("لا يوجد تحليل لحفظه.");
+  const meta = r.metadata || {};
+  return {
+    created_by: state.user.id,
+    title: meta.report_title || modeDbName(state.mode),
+    analysis_type: state.mode,
+    school_name: meta.school_name || r.school_name_detected || "مدارس المشكاة الأهلية",
+    academic_year: meta.academic_year || r.academic_year_detected || "",
+    period_name: meta.period || r.period_detected || "",
+    care_threshold: Number(el.threshold.value || 85),
+    weakness_threshold: Number(state.mode === "period" ? el.shortTestThreshold.value : el.finalExamThreshold.value || 50),
+    include_names: Boolean(meta.include_names),
+    notes: el.notes.value.trim() || null,
+    grade_labels: (r.grade_summaries || []).map(x => x.grade_name).filter(Boolean),
+    student_count: r.overall?.total || 0,
+    overall_average: r.overall?.average ?? null,
+    weak_student_count: (r.at_risk_students || []).length,
+    summary: {overall: r.overall, categories: r.overall?.categories || {}, mode_name: r.mode_name},
+    report_data: r,
+    app_version: "v12-database"
+  };
+}
+async function saveCurrentAnalysis() {
+  if (!state.user || state.profile?.role !== "admin") return showDatabaseStatus("الحفظ متاح لحساب المدير فقط.", true);
+  if (!state.result) return;
+  const original = el.saveAnalysisButton.textContent;
+  el.saveAnalysisButton.disabled = true;
+  el.saveAnalysisButton.textContent = "جارٍ الحفظ...";
+  try {
+    const {data, error} = await db.from("saved_analyses").insert(buildSavedPayload()).select("id").single();
+    if (error) throw error;
+    showDatabaseStatus(`تم حفظ التحليل في الأرشيف بنجاح. رقم الحفظ: ${data.id.slice(0, 8)}`);
+    await loadArchive();
+  } catch (error) { console.error(error); showDatabaseStatus(error.message || "تعذر حفظ التحليل.", true); }
+  finally { el.saveAnalysisButton.disabled = false; el.saveAnalysisButton.textContent = original; }
+}
+function escapeHtmlDb(value) { return String(value ?? "").replace(/[&<>'"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch])); }
+function renderArchive() {
+  const q = el.archiveSearch.value.trim().toLowerCase();
+  const t = el.archiveTypeFilter.value;
+  const rows = state.archive.filter(item => (!t || item.analysis_type === t) && (!q || [item.title,item.academic_year,item.period_name,...(item.grade_labels||[])].join(" ").toLowerCase().includes(q)));
+  if (!rows.length) { el.archiveList.innerHTML = '<div class="empty-state">لا توجد تحليلات مطابقة.</div>'; return; }
+  el.archiveList.innerHTML = rows.map(item => `<article class="archive-card">
+    <div class="archive-card-head"><div><span>${escapeHtmlDb(modeDbName(item.analysis_type))}</span><h3>${escapeHtmlDb(item.title)}</h3></div><time>${new Date(item.created_at).toLocaleString("ar-SA")}</time></div>
+    <div class="archive-meta"><span>العام: ${escapeHtmlDb(item.academic_year || "—")}</span><span>الفترة: ${escapeHtmlDb(item.period_name || "—")}</span><span>الطلاب: ${item.student_count}</span><span>المتوسط: ${item.overall_average == null ? "—" : Number(item.overall_average).toFixed(2)+"%"}</span></div>
+    <div class="archive-grades">${(item.grade_labels||[]).map(x=>`<b>${escapeHtmlDb(x)}</b>`).join("")}</div>
+    <div class="actions inline-actions"><button class="primary-button" data-open-analysis="${item.id}" type="button">فتح التحليل</button>${state.profile?.role === "admin" ? `<button class="danger-button" data-delete-analysis="${item.id}" type="button">حذف</button>` : ""}</div>
+  </article>`).join("");
+  el.archiveList.querySelectorAll("[data-open-analysis]").forEach(b=>b.addEventListener("click",()=>openSavedAnalysis(b.dataset.openAnalysis)));
+  el.archiveList.querySelectorAll("[data-delete-analysis]").forEach(b=>b.addEventListener("click",()=>deleteSavedAnalysis(b.dataset.deleteAnalysis)));
+}
+async function loadArchive() {
+  if (!state.user) return;
+  el.archiveList.innerHTML = '<div class="empty-state">جارٍ تحميل الأرشيف...</div>';
+  const {data, error} = await db.from("saved_analyses").select("id,title,analysis_type,academic_year,period_name,grade_labels,student_count,overall_average,created_at").order("created_at", {ascending:false});
+  if (error) { el.archiveList.innerHTML = `<div class="status-box error">${escapeHtmlDb(error.message)}</div>`; return; }
+  state.archive = data || [];
+  renderArchive();
+}
+async function openSavedAnalysis(id) {
+  const {data, error} = await db.from("saved_analyses").select("report_data").eq("id", id).single();
+  if (error) return showDatabaseStatus(error.message, true);
+  const r = data.report_data;
+  state.mode = r.mode || r.analysis_type || state.mode || "semester";
+  document.querySelectorAll(".mode-card").forEach(card => { const selected = card.dataset.mode === state.mode; card.classList.toggle("selected", selected); card.setAttribute("aria-checked", selected ? "true" : "false"); });
+  renderResult(r);
+  el.archivePanel.hidden = true;
+  showDatabaseStatus("تم فتح التحليل المحفوظ. يمكنك عرضه أو تصديره Word وPDF.");
+}
+async function deleteSavedAnalysis(id) {
+  if (state.profile?.role !== "admin" || !confirm("هل تريد حذف هذا التحليل نهائيًا؟")) return;
+  const {error} = await db.from("saved_analyses").delete().eq("id", id);
+  if (error) return showDatabaseStatus(error.message, true);
+  await loadArchive();
+  showDatabaseStatus("تم حذف التحليل.");
+}
+async function initDatabase() {
+  if (!db) return showDatabaseStatus("تعذر تحميل مكتبة الاتصال بقاعدة البيانات.", true);
+  const {data} = await db.auth.getSession();
+  await applySession(data.session);
+  db.auth.onAuthStateChange((_event, session) => setTimeout(() => applySession(session), 0));
+}
+
 document.querySelectorAll(".mode-card").forEach(card => card.addEventListener("click", () => selectMode(card.dataset.mode)));
 el.fileInput.addEventListener("change", event => setFiles(event.target.files));
 el.dropZone.addEventListener("dragover", event => { event.preventDefault(); el.dropZone.classList.add("dragging"); });
@@ -1775,7 +1955,16 @@ el.analyzeButton.addEventListener("click", analyzeFiles);
 el.resetButton.addEventListener("click", resetFilesAndResults);
 el.exportButton.addEventListener("click", downloadWord);
 el.printButton.addEventListener("click", () => window.print());
+el.signInButton?.addEventListener("click", signIn);
+el.signUpButton?.addEventListener("click", signUp);
+el.signOutButton?.addEventListener("click", signOut);
+el.openArchiveButton?.addEventListener("click", async () => { el.archivePanel.hidden = !el.archivePanel.hidden; if (!el.archivePanel.hidden) { await loadArchive(); el.archivePanel.scrollIntoView({behavior:"smooth"}); } });
+el.refreshArchiveButton?.addEventListener("click", loadArchive);
+el.archiveSearch?.addEventListener("input", renderArchive);
+el.archiveTypeFilter?.addEventListener("change", renderArchive);
+el.saveAnalysisButton?.addEventListener("click", saveCurrentAnalysis);
 setupTabs();
 renderFileList();
+initDatabase();
 
 window.__APP_TEST__ = {selectMode, parseWorkbook, analyzeRecords, classifyAverage, parseTabularPeriodSheet, extractSubjectDetails, finalizeFinalExamRecords, inferFinalExamMax, mergePeriodRecords, inferGrade, inferClassNumber, gradeOrdinal, makeClassLabel, gradeOptionsHtml, categoriesWithData, categoryLabel, formatArabicList, renderOverview, renderClasses, wordReportHtml, getMode: id => MODES[id], getState: () => state};

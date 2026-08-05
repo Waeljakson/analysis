@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <div class="top-ribbon" aria-hidden="true"></div>
@@ -106,6 +107,48 @@
         </button>
       </div>
       <p id="modeHint" class="selection-hint">اختر المسار الذي يتوافق مع نوع ملفات النتائج المتاحة.</p>
+    </section>
+
+    <section class="panel database-panel" aria-labelledby="databaseHeading">
+      <div class="panel-accent" aria-hidden="true"></div>
+      <div class="section-title premium-title">
+        <span class="step">DB</span>
+        <div>
+          <span class="section-kicker">الأرشفة السحابية</span>
+          <h2 id="databaseHeading">حساب المدرسة والتحليلات المحفوظة</h2>
+          <p>سجّل الدخول لحفظ أي تحليل في قاعدة بيانات مدارس المشكاة والرجوع إليه من أي جهاز.</p>
+        </div>
+      </div>
+      <div id="authGuest" class="auth-grid">
+        <label><span>البريد الإلكتروني</span><input id="authEmail" type="email" autocomplete="email" placeholder="name@school.edu.sa"></label>
+        <label><span>كلمة المرور</span><input id="authPassword" type="password" autocomplete="current-password" minlength="6" placeholder="6 أحرف على الأقل"></label>
+        <label class="full-width"><span>الاسم الكامل — عند إنشاء حساب جديد</span><input id="authFullName" type="text" autocomplete="name" placeholder="اسم المستخدم"></label>
+        <div class="actions full-width auth-actions">
+          <button id="signInButton" class="primary-button" type="button">تسجيل الدخول</button>
+          <button id="signUpButton" class="secondary-button" type="button">إنشاء حساب</button>
+        </div>
+      </div>
+      <div id="authUser" class="user-session" hidden>
+        <div><span>المستخدم الحالي</span><strong id="currentUserName"></strong><small id="currentUserRole"></small></div>
+        <div class="actions inline-actions">
+          <button id="openArchiveButton" class="primary-button" type="button">التحليلات المحفوظة</button>
+          <button id="signOutButton" class="secondary-button" type="button">تسجيل الخروج</button>
+        </div>
+      </div>
+      <div id="databaseStatus" class="status-box" hidden></div>
+    </section>
+
+    <section id="archivePanel" class="panel archive-panel" hidden>
+      <div class="section-title premium-title compact">
+        <span class="step">AR</span>
+        <div><span class="section-kicker">الأرشيف</span><h2>التحليلات المحفوظة</h2><p>ابحث وافتح وأعد تصدير التقارير السابقة.</p></div>
+      </div>
+      <div class="archive-toolbar">
+        <input id="archiveSearch" type="search" placeholder="ابحث بالعنوان أو العام أو الصف...">
+        <select id="archiveTypeFilter"><option value="">كل أنواع التحليل</option><option value="past">العام الماضي</option><option value="semester">الفصل الدراسي</option><option value="period">الفترة</option></select>
+        <button id="refreshArchiveButton" class="secondary-button" type="button">تحديث</button>
+      </div>
+      <div id="archiveList" class="archive-list"></div>
     </section>
 
     <section id="setupPanel" class="panel setup-panel" hidden>
@@ -253,6 +296,7 @@
           <p id="resultsSubtitle"></p>
         </div>
         <div class="actions inline-actions">
+          <button id="saveAnalysisButton" class="primary-button save-analysis-button" type="button" hidden>حفظ التحليل</button>
           <button id="exportButton" class="primary-button" type="button">تصدير Word</button>
           <button id="printButton" class="secondary-button" type="button">طباعة / PDF</button>
         </div>
@@ -286,7 +330,7 @@
         <img src="assets/school-logo.png" alt="شعار المدرسة">
         <div><strong>مدارس المشكاة الأهلية</strong><span>منصة تحليل النتائج التعليمية</span></div>
       </div>
-      <p>تطبيق ويب ثابت يعمل بالكامل داخل المتصفح ولا يحتاج إلى خادم أو قاعدة بيانات.</p>
+      <p>تطبيق آمن لتحليل النتائج وحفظ التقارير في قاعدة بيانات مدارس المشكاة الأهلية.</p>
       <img class="footer-guidance" src="assets/student-guidance-logo.png" alt="شعار التوجيه الطلابي">
     </div>
   </footer>
