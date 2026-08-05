@@ -1,6 +1,33 @@
 "use strict";
 
-const GRADE_NAMES = {1: "الأول المتوسط", 2: "الثاني المتوسط", 3: "الثالث المتوسط"};
+const GRADE_NAMES = {
+  1: "الأول الابتدائي",
+  2: "الثاني الابتدائي",
+  3: "الثالث الابتدائي",
+  4: "الرابع الابتدائي",
+  5: "الخامس الابتدائي",
+  6: "السادس الابتدائي",
+  7: "الأول المتوسط",
+  8: "الثاني المتوسط",
+  9: "الثالث المتوسط",
+  10: "الأول الثانوي",
+  11: "الثاني الثانوي",
+  12: "الثالث الثانوي"
+};
+const GRADE_IDS = Object.keys(GRADE_NAMES).map(Number);
+const GRADE_STAGE_GROUPS = [
+  {label: "المرحلة الابتدائية", ids: [1, 2, 3, 4, 5, 6]},
+  {label: "المرحلة المتوسطة", ids: [7, 8, 9]},
+  {label: "المرحلة الثانوية", ids: [10, 11, 12]}
+];
+const ORDINAL_WORDS = {
+  1: ["اول", "الاول"],
+  2: ["ثاني", "الثاني"],
+  3: ["ثالث", "الثالث"],
+  4: ["رابع", "الرابع"],
+  5: ["خامس", "الخامس"],
+  6: ["سادس", "السادس"]
+};
 const MODES = {
   semester: {
     id: "semester",
@@ -10,10 +37,11 @@ const MODES = {
     requiresClasses: true,
     supportsClassAnalysis: true,
     supportsShortTests: false,
+    supportsFinalExams: true,
     categories: ["100%", "ممتاز", "جيد جداً", "جيد", "مقبول", "ضعيف"],
     reportCategories: ["100%", "ممتاز", "جيد جداً", "جيد", "مقبول", "ضعيف"],
-    filesHelp: "اختر ملفًا لكل صف. يجب أن تحتوي أوراق الطلاب على رقم الفصل.",
-    usageHelp: "اختر ملفات نتيجة الفصل الدراسي، ثم حدد الصف الصحيح لكل ملف. سيستخرج التطبيق الفصول ويقارن بينها تلقائيًا.",
+    filesHelp: "اختر ملفًا تفصيليًا لكل صف. يجب أن تحتوي أوراق الطلاب على رقم الفصل، ولإظهار ضعاف المواد يجب أن يظهر عمود «اختبار نهاية الفصل» داخل كشف كل طالب.",
+    usageHelp: "اختر ملفات نتيجة الفصل الدراسي وحدد الصف الصحيح لكل ملف. سيستخرج التطبيق الفصول ويقارن بينها، ويحسب نسبة كل طالب في اختبار نهاية الفصل ويرصد من هم أقل من النسبة المحددة.",
     notesPlaceholder: "مثال: الفصل 1/1 فصل موهوبين، أو ملاحظات المتابعة للحالات المتعثرة."
   },
   past: {
@@ -24,10 +52,11 @@ const MODES = {
     requiresClasses: false,
     supportsClassAnalysis: false,
     supportsShortTests: false,
+    supportsFinalExams: true,
     categories: ["100%", "ممتاز", "جيد جداً", "جيد", "مقبول"],
     reportCategories: ["100%", "ممتاز", "جيد جداً", "جيد", "مقبول"],
-    filesHelp: "اختر ملفًا لكل صف. هذا النوع لا يشترط وجود رقم فصل داخل ملفات الطلاب.",
-    usageHelp: "اختر ملفات النتائج النهائية للعام الماضي وحدد الصف الصحيح لكل ملف. سيُنشأ التحليل على مستوى الصفوف دون أقسام للفصول.",
+    filesHelp: "اختر ملفًا تفصيليًا لكل صف. لا يشترط وجود رقم فصل، ولإظهار ضعاف المواد يجب أن تتضمن أوراق الطلاب عمود «اختبار نهاية الفصل»؛ ملفات المعدلات المختصرة وحدها لا تكفي.",
+    usageHelp: "اختر ملفات النتائج النهائية للعام الماضي وحدد الصف الصحيح لكل ملف. سيُنشأ التحليل على مستوى الصفوف، مع رصد ضعاف اختبار نهاية الفصل عند توافر الدرجات التفصيلية.",
     notesPlaceholder: "أضف أي ملاحظات تفسيرية عن نتائج العام الماضي أو برامج دعم الطلاب."
   },
   period: {
@@ -38,6 +67,7 @@ const MODES = {
     requiresClasses: false,
     supportsClassAnalysis: true,
     supportsShortTests: true,
+    supportsFinalExams: false,
     categories: ["100%", "ممتاز", "جيد جداً", "جيد", "مقبول", "ضعيف"],
     reportCategories: ["100%", "ممتاز", "جيد جداً", "جيد", "مقبول", "ضعيف"],
     filesHelp: "ارفع ملفات نتائج الفترة لكل فصل. إذا لم يوجد حقل «المعدل» سيحسبه التطبيق تلقائيًا من مجموع درجات المواد ودرجاتها القصوى، ويمكن رفع أكثر من ملف للصف نفسه.",
@@ -97,6 +127,8 @@ const el = {
   threshold: document.getElementById("threshold"),
   shortTestThresholdRow: document.getElementById("shortTestThresholdRow"),
   shortTestThreshold: document.getElementById("shortTestThreshold"),
+  finalExamThresholdRow: document.getElementById("finalExamThresholdRow"),
+  finalExamThreshold: document.getElementById("finalExamThreshold"),
   includeNames: document.getElementById("includeNames"),
   notes: document.getElementById("notes"),
   analyzeButton: document.getElementById("analyzeButton"),
@@ -116,6 +148,8 @@ const el = {
   subjectsTab: document.getElementById("subjectsTab"),
   shortTestsTabButton: document.getElementById("shortTestsTabButton"),
   shortTestsTab: document.getElementById("shortTestsTab"),
+  finalExamsTabButton: document.getElementById("finalExamsTabButton"),
+  finalExamsTab: document.getElementById("finalExamsTab"),
   printReportTitle: document.getElementById("printReportTitle"),
   printSchoolName: document.getElementById("printSchoolName"),
   printPeriodYear: document.getElementById("printPeriodYear")
@@ -170,24 +204,67 @@ function selectMode(modeId) {
   el.period.value = mode.period;
   el.notes.placeholder = mode.notesPlaceholder;
   el.shortTestThresholdRow.hidden = !mode.supportsShortTests;
+  el.finalExamThresholdRow.hidden = !mode.supportsFinalExams;
   if (mode.supportsShortTests) el.shortTestThreshold.value = "50";
+  if (mode.supportsFinalExams) el.finalExamThreshold.value = "50";
   if (changed) resetFilesAndResults();
   el.setupPanel.scrollIntoView({behavior: "smooth", block: "start"});
 }
 
-function inferGrade(filename) {
-  const n = normalizeArabic(filename);
-  if (n.includes("اول")) return 1;
-  if (n.includes("ثاني")) return 2;
-  if (n.includes("ثالث")) return 3;
-  const numericPrefix = cleanText(filename).match(/(?:^|[^0-9])([123])\s*[-_/]/);
-  if (numericPrefix) return Number(numericPrefix[1]);
+function gradeStage(gradeNumber) {
+  if (gradeNumber >= 1 && gradeNumber <= 6) return "primary";
+  if (gradeNumber >= 7 && gradeNumber <= 9) return "middle";
+  if (gradeNumber >= 10 && gradeNumber <= 12) return "secondary";
+  return "middle";
+}
+function gradeOrdinal(gradeNumber) {
+  if (gradeNumber >= 1 && gradeNumber <= 6) return gradeNumber;
+  if (gradeNumber >= 7 && gradeNumber <= 9) return gradeNumber - 6;
+  if (gradeNumber >= 10 && gradeNumber <= 12) return gradeNumber - 9;
   return 1;
+}
+function makeClassLabel(gradeNumber, classNumber) {
+  return classNumber ? `${gradeOrdinal(Number(gradeNumber))}/${classNumber}` : "";
+}
+function gradeOptionsHtml(selectedGrade) {
+  return GRADE_STAGE_GROUPS.map(group => `
+    <optgroup label="${group.label}">
+      ${group.ids.map(id => `<option value="${id}" ${Number(selectedGrade) === id ? "selected" : ""}>${GRADE_NAMES[id]}</option>`).join("")}
+    </optgroup>`).join("");
+}
+function inferGrade(filename) {
+  const normalized = normalizeArabic(filename);
+  const hasPrimary = /ابتدائي|ابتدائيه/.test(normalized);
+  const hasMiddle = /متوسط|متوسطه/.test(normalized);
+  const hasSecondary = /ثانوي|ثانويه/.test(normalized);
+
+  let ordinal = null;
+  for (const [number, aliases] of Object.entries(ORDINAL_WORDS)) {
+    if (aliases.some(alias => normalized.includes(alias))) {
+      ordinal = Number(number);
+      break;
+    }
+  }
+  if (!ordinal) {
+    const numericPrefix = cleanText(filename).match(/(?:^|[^0-9])(1[0-2]|[1-9])\s*[-_/]/);
+    if (numericPrefix) ordinal = Number(numericPrefix[1]);
+  }
+
+  if (hasPrimary && ordinal && ordinal <= 6) return ordinal;
+  if (hasMiddle && ordinal && ordinal <= 3) return ordinal + 6;
+  if (hasSecondary && ordinal && ordinal <= 3) return ordinal + 9;
+
+  // الملفات المختصرة مثل 1-1 و2-3 لا توضح المرحلة؛ نحافظ على التوافق
+  // مع ملفات المدرسة الحالية بافتراض المرحلة المتوسطة، ويمكن تعديل الصف من القائمة.
+  if (ordinal && ordinal <= 3) return ordinal + 6;
+  if (ordinal && ordinal <= 6) return ordinal;
+  return 7;
 }
 function inferClassNumber(filename, gradeNumber = null) {
   const base = cleanText(filename).replace(/\.[^.]+$/, "");
-  const pair = base.match(/(?:^|[^0-9])([123])\s*[-_/]\s*(\d{1,2})(?:[^0-9]|$)/);
-  if (pair && (!gradeNumber || Number(pair[1]) === Number(gradeNumber))) return pair[2];
+  const pair = base.match(/(?:^|[^0-9])(1[0-2]|[1-9])\s*[-_/]\s*(\d{1,2})(?:[^0-9]|$)/);
+  const expectedOrdinal = gradeNumber ? gradeOrdinal(Number(gradeNumber)) : null;
+  if (pair && (!expectedOrdinal || Number(pair[1]) === expectedOrdinal)) return pair[2];
   const labeled = normalizeArabic(base).match(/(?:الفصل|فصل|class)\s*[:\-]?\s*(\d{1,2})/i);
   return labeled ? labeled[1] : null;
 }
@@ -211,7 +288,7 @@ function renderFileList() {
     <div class="file-row">
       <div class="file-name"><strong>${escapeHtml(item.file.name)}</strong><small>${formatFileSize(item.file.size)}</small></div>
       <select data-grade-index="${index}" aria-label="الصف الدراسي للملف ${escapeHtml(item.file.name)}">
-        ${[1,2,3].map(n => `<option value="${n}" ${item.grade === n ? "selected" : ""}>${GRADE_NAMES[n]}</option>`).join("")}
+        ${gradeOptionsHtml(item.grade)}
       </select>
       <button type="button" data-remove-index="${index}" aria-label="حذف الملف">×</button>
     </div>`).join("");
@@ -613,6 +690,50 @@ function finalizePeriodDetailedRecords(records) {
   }
   return records;
 }
+function inferFinalExamMax(observedMax) {
+  const value = Number(observedMax);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  // في النماذج السعودية الشائعة تكون درجة اختبار نهاية الفصل 40 درجة،
+  // مع إبقاء دعم مرن لأي نموذج يستخدم 50 أو 60 أو 100 درجة.
+  if (value <= 40.0001) return 40;
+  if (value <= 50.0001) return 50;
+  if (value <= 60.0001) return 60;
+  return 100;
+}
+function finalizeFinalExamRecords(records) {
+  const groups = new Map();
+  for (const record of records) {
+    for (const [subject, detail] of Object.entries(record.subject_details || {})) {
+      const score = Number(detail?.final_exam);
+      if (!Number.isFinite(score)) continue;
+      const key = `${record.grade_number}|||${subject}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(score);
+    }
+  }
+  const profiles = new Map();
+  for (const [key, scores] of groups.entries()) {
+    const observedMax = Math.max(0, ...scores);
+    const max = inferFinalExamMax(observedMax);
+    if (max > 0) profiles.set(key, max);
+  }
+  for (const record of records) {
+    const normalized = {};
+    for (const [subject, detail] of Object.entries(record.subject_details || {})) {
+      const score = Number(detail?.final_exam);
+      const max = profiles.get(`${record.grade_number}|||${subject}`) || 0;
+      if (!Number.isFinite(score) || max <= 0) continue;
+      normalized[subject] = {
+        score: Math.round(score * 100) / 100,
+        max,
+        percentage: Math.round(score / max * 10000) / 100
+      };
+    }
+    record.final_exams = normalized;
+  }
+  return records;
+}
+
 function classifyAverage(value, modeId) {
   if (Math.abs(value - 100) <= 0.005) return "100%";
   if (value >= 90) return "ممتاز";
@@ -651,7 +772,7 @@ function parseTabularPeriodSheet(cells, fileName, gradeNumber, sheetName, modeId
     const key = `${normalizeArabic(studentName)}|${average}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    const gradeName = cleanText(cells[`E${row}`]) || GRADE_NAMES[gradeNumber];
+    const gradeName = GRADE_NAMES[gradeNumber] || cleanText(cells[`E${row}`]);
     const periodLabel = cleanText(cells[`G${row}`]);
     const semesterLabel = cleanText(cells[`H${row}`]);
     const academicYear = cleanText(cells[`I${row}`]);
@@ -662,7 +783,7 @@ function parseTabularPeriodSheet(cells, fileName, gradeNumber, sheetName, modeId
       grade_number: gradeNumber,
       grade_name: gradeName,
       class_number: inferredClass,
-      class_label: inferredClass ? `${gradeNumber}/${inferredClass}` : "",
+      class_label: makeClassLabel(gradeNumber, inferredClass),
       student_name: studentName,
       average: Math.round(average * 10000) / 10000,
       category: classifyAverage(average, modeId),
@@ -673,6 +794,7 @@ function parseTabularPeriodSheet(cells, fileName, gradeNumber, sheetName, modeId
       semester_label: semesterLabel,
       subjects: {},
       short_tests: {},
+      final_exams: {},
       subject_details: {},
       subject_table_kind: "summary",
       average_source: "file",
@@ -727,7 +849,7 @@ async function parseWorkbook(file, gradeNumber, modeId = state.mode) {
       grade_number: gradeNumber,
       grade_name: GRADE_NAMES[gradeNumber],
       class_number: classNumber,
-      class_label: classNumber ? `${gradeNumber}/${classNumber}` : "",
+      class_label: makeClassLabel(gradeNumber, classNumber),
       student_name: studentName || `طالب بدون اسم (${sheet.name})`,
       average,
       category: Number.isFinite(average) ? classifyAverage(average, modeId) : "",
@@ -738,6 +860,7 @@ async function parseWorkbook(file, gradeNumber, modeId = state.mode) {
       semester_label: "",
       subjects: subjectDetails.subjects,
       short_tests: subjectDetails.short_tests,
+      final_exams: {},
       subject_details: subjectDetails.subject_details,
       subject_table_kind: subjectDetails.table_kind,
       average_source: Number.isFinite(average) ? "file" : "pending_calculation",
@@ -747,6 +870,7 @@ async function parseWorkbook(file, gradeNumber, modeId = state.mode) {
   }
 
   if (modeId === "period") finalizePeriodDetailedRecords(records);
+  if (mode.supportsFinalExams) finalizeFinalExamRecords(records);
   const unresolved = records.find(record => !Number.isFinite(record.average));
   if (unresolved) {
     throw new Error(`تعذر حساب المعدل من نتائج المواد في الورقة ${unresolved.sheet_name} داخل ${file.name}. تأكد من وجود أسماء المواد وعمود المجموع.`);
@@ -771,6 +895,7 @@ function mergePeriodRecords(records, modeId = "period") {
         ...record,
         subjects: {...(record.subjects || {})},
         short_tests: {...(record.short_tests || {})},
+        final_exams: {...(record.final_exams || {})},
         subject_details: {...(record.subject_details || {})}
       });
       continue;
@@ -794,6 +919,7 @@ function mergePeriodRecords(records, modeId = "period") {
 
     current.subjects = {...current.subjects, ...(record.subjects || {})};
     current.short_tests = {...current.short_tests, ...(record.short_tests || {})};
+    current.final_exams = {...current.final_exams, ...(record.final_exams || {})};
     current.subject_details = {...current.subject_details, ...(record.subject_details || {})};
     current.class_number = current.class_number || record.class_number || null;
     current.class_label = current.class_label || record.class_label || "";
@@ -927,13 +1053,29 @@ function buildNarrative(analysis, threshold, notes, modeId) {
       recommendations.push("لإظهار ضعاف المواد، ارفع كشوف الطلاب التفصيلية التي تتضمن عمود «اختبارات قصيرة» بجانب اسم كل مادة.");
     }
   }
+  if (mode.supportsFinalExams) {
+    if (analysis.final_exam_summary.length) {
+      if (analysis.final_exam_weak_count) {
+        const highest = analysis.final_exam_summary.slice().sort((a, b) => b.weak_count - a.weak_count || b.weak_rate - a.weak_rate)[0];
+        insights.push(`تم رصد ${analysis.final_exam_weak_count} حالة ضعف في اختبار نهاية الفصل لدى ${analysis.final_exam_weak_student_count} طالبًا وفق حد أقل من ${analysis.final_exam_threshold}%.`);
+        if (highest?.weak_count) insights.push(`سجلت مادة ${highest.subject} في ${highest.grade_name} أعلى عدد حالات ضعف في اختبار نهاية الفصل (${highest.weak_count} حالة).`);
+        recommendations.push("إعداد خطط علاجية حسب المادة للطلاب الأقل من نسبة الضعف المحددة في اختبار نهاية الفصل، وربطها بنتائج القياس اللاحق.");
+      } else {
+        insights.push(`لم يُسجل أي طالب أقل من ${analysis.final_exam_threshold}% في اختبار نهاية الفصل ضمن المواد التي تحتوي على اختبار.`);
+        recommendations.push("المحافظة على مستوى التحصيل في اختبار نهاية الفصل مع تقديم إثراء للطلاب المتفوقين ومتابعة أي تراجع مبكر.");
+      }
+    } else {
+      insights.push("لم تُكتشف درجات تفصيلية لاختبار نهاية الفصل في الملفات المرفوعة؛ لذلك لم تُنشأ قائمة ضعاف المواد لهذا الاختبار.");
+      recommendations.push("لإظهار ضعاف اختبار نهاية الفصل، استخدم ملفات النتائج التفصيلية التي تتضمن عمود «اختبار نهاية الفصل» لكل مادة؛ ملفات المعدلات المختصرة وحدها لا تكفي.");
+    }
+  }
   if (analysis.at_risk_count) {
     recommendations.push("إعداد خطط علاجية فردية للطلاب الأولى بالرعاية مع توثيق التدخلات وقياس أثرها دوريًا.", "تفعيل التواصل المنتظم مع أولياء الأمور للحالات المتعثرة وربط المتابعة بمؤشرات قابلة للقياس.");
   } else recommendations.push("الاستمرار في التدخلات الوقائية التي حافظت على انخفاض التعثر الدراسي.");
   recommendations.push("تقديم برامج إثرائية للطلاب المتفوقين لضمان استمرار النمو وعدم الاكتفاء بمستوى التحصيل الحالي.", "مراجعة نتائج المواد الأقل متوسطًا ووضع تدخلات تعليمية محددة لها.");
   return {opening, insights, recommendations, school_notes: cleanText(notes)};
 }
-function analyzeRecords(records, threshold, notes, modeId = state.mode, shortTestThreshold = 50) {
+function analyzeRecords(records, threshold, notes, modeId = state.mode, shortTestThreshold = 50, finalExamThreshold = 50) {
   const mode = MODES[modeId];
   if (!mode) throw new Error("نوع التحليل غير صالح.");
   const grades = {};
@@ -948,13 +1090,21 @@ function analyzeRecords(records, threshold, notes, modeId = state.mode, shortTes
     };
   }
   if (mode.supportsClassAnalysis) {
-    const labels = [...new Set(records.map(record => record.class_label).filter(Boolean))].sort((a, b) => {
-      const aa = a.split("/").map(Number), bb = b.split("/").map(Number);
-      return aa[0] - bb[0] || aa[1] - bb[1];
+    const classKeys = [...new Set(records
+      .filter(record => record.class_label)
+      .map(record => `${record.grade_number}|||${record.class_label}`)
+    )].sort((a, b) => {
+      const [gradeA, labelA] = a.split("|||");
+      const [gradeB, labelB] = b.split("|||");
+      const classA = Number(labelA.split("/")[1] || 0);
+      const classB = Number(labelB.split("/")[1] || 0);
+      return Number(gradeA) - Number(gradeB) || classA - classB;
     });
-    for (const label of labels) {
-      const group = records.filter(record => record.class_label === label);
-      classes[label] = {...summaryGroup(group, modeId), class_label: label, grade_number: group[0].grade_number, grade_name: group[0].grade_name,
+    for (const key of classKeys) {
+      const [gradeValue, label] = key.split("|||");
+      const gradeNumber = Number(gradeValue);
+      const group = records.filter(record => record.grade_number === gradeNumber && record.class_label === label);
+      classes[key] = {...summaryGroup(group, modeId), class_label: label, grade_number: gradeNumber, grade_name: GRADE_NAMES[gradeNumber],
         top_students: topStudents(group, 5), at_risk_count: group.filter(record => record.average < threshold).length};
     }
   }
@@ -1042,11 +1192,70 @@ function analyzeRecords(records, threshold, notes, modeId = state.mode, shortTes
   short_test_summary.sort((a, b) => a.grade_number - b.grade_number || b.weak_count - a.weak_count || a.subject.localeCompare(b.subject, "ar"));
   short_test_weak_students.sort((a, b) => a.grade_number - b.grade_number || a.subject.localeCompare(b.subject, "ar") || a.percentage - b.percentage);
 
+  // تحليل اختبار نهاية الفصل حسب الصف والمادة.
+  const finalExamGroups = new Map();
+  for (const record of records) {
+    for (const [subject, rawValue] of Object.entries(record.final_exams || {})) {
+      const score = Number(rawValue?.score ?? rawValue);
+      const maxScore = Number(rawValue?.max);
+      const percentage = Number(rawValue?.percentage);
+      if (!Number.isFinite(score)) continue;
+      const key = `${record.grade_number}|||${subject}`;
+      if (!finalExamGroups.has(key)) finalExamGroups.set(key, {
+        grade_number: record.grade_number,
+        grade_name: record.grade_name,
+        subject,
+        entries: []
+      });
+      finalExamGroups.get(key).entries.push({record, score, maxScore, percentage});
+    }
+  }
+
+  const final_exam_summary = [];
+  const final_exam_weak_students = [];
+  for (const group of finalExamGroups.values()) {
+    const declaredMax = Math.max(0, ...group.entries.map(item => item.maxScore).filter(Number.isFinite));
+    const observedMax = Math.max(0, ...group.entries.map(item => item.score));
+    const maxScore = declaredMax > 0 ? declaredMax : inferFinalExamMax(observedMax);
+    if (maxScore <= 0) continue;
+    const assessed = group.entries.map(item => ({
+      ...item,
+      percentage: Number.isFinite(item.percentage)
+        ? item.percentage
+        : Math.round(item.score / maxScore * 10000) / 100
+    }));
+    const weak = assessed.filter(item => item.percentage < finalExamThreshold);
+    const averagePercent = assessed.reduce((sum, item) => sum + item.percentage, 0) / assessed.length;
+    final_exam_summary.push({
+      grade_number: group.grade_number,
+      grade_name: group.grade_name,
+      subject: group.subject,
+      max_score: maxScore,
+      students: assessed.length,
+      weak_count: weak.length,
+      weak_rate: roundedPct(weak.length, assessed.length),
+      average_percent: Math.round(averagePercent * 100) / 100
+    });
+    for (const item of weak) final_exam_weak_students.push({
+      student_name: item.record.student_name,
+      grade_name: item.record.grade_name,
+      grade_number: item.record.grade_number,
+      class_label: item.record.class_label,
+      subject: group.subject,
+      score: item.score,
+      max_score: maxScore,
+      percentage: item.percentage
+    });
+  }
+  final_exam_summary.sort((a, b) => a.grade_number - b.grade_number || b.weak_count - a.weak_count || a.subject.localeCompare(b.subject, "ar"));
+  final_exam_weak_students.sort((a, b) => a.grade_number - b.grade_number || a.subject.localeCompare(b.subject, "ar") || a.percentage - b.percentage);
+
   const atRisk = records.filter(record => record.average < threshold).sort((a, b) => {
     const classDiff = mode.supportsClassAnalysis ? Number(a.class_number || 0) - Number(b.class_number || 0) : 0;
     return a.grade_number - b.grade_number || classDiff || a.average - b.average;
   });
   const uniqueWeakStudents = new Set(short_test_weak_students.map(item => `${item.grade_number}|${normalizeArabic(item.student_name)}|${item.class_label}`));
+  const uniqueFinalWeakStudents = new Set(final_exam_weak_students.map(item => `${item.grade_number}|${normalizeArabic(item.student_name)}|${item.class_label}`));
   const analysis = {
     mode_id: modeId, mode_name: mode.name, overall: summaryGroup(records, modeId), grades, classes,
     at_risk_count: atRisk.length,
@@ -1057,6 +1266,11 @@ function analyzeRecords(records, threshold, notes, modeId = state.mode, shortTes
     short_test_weak_students,
     short_test_weak_count: short_test_weak_students.length,
     short_test_weak_student_count: uniqueWeakStudents.size,
+    final_exam_threshold: finalExamThreshold,
+    final_exam_summary,
+    final_exam_weak_students,
+    final_exam_weak_count: final_exam_weak_students.length,
+    final_exam_weak_student_count: uniqueFinalWeakStudents.size,
     calculated_average_count: records.filter(record => record.average_source === "calculated").length,
     threshold,
     school_name_detected: mostCommon(records.map(record => record.school_name)),
@@ -1110,6 +1324,9 @@ function renderKpis(result) {
     ${result.calculated_average_count ? `<article class="kpi"><span>معدلات محسوبة تلقائيًا</span><strong>${result.calculated_average_count.toLocaleString("ar-EG")}</strong></article>` : ""}
     <article class="kpi warning"><span>طلاب ضعاف الاختبار القصير</span><strong>${result.short_test_weak_student_count.toLocaleString("ar-EG")}</strong></article>
     <article class="kpi warning"><span>حالات ضعف المواد</span><strong>${result.short_test_weak_count.toLocaleString("ar-EG")}</strong></article>`;
+  if (MODES[result.mode_id].supportsFinalExams) html += `
+    <article class="kpi warning"><span>طلاب ضعاف اختبار نهاية الفصل</span><strong>${result.final_exam_weak_student_count.toLocaleString("ar-EG")}</strong></article>
+    <article class="kpi warning"><span>حالات ضعف مواد الاختبار النهائي</span><strong>${result.final_exam_weak_count.toLocaleString("ar-EG")}</strong></article>`;
   el.kpiGrid.innerHTML = html;
 }
 function renderOverview(result) {
@@ -1232,6 +1449,37 @@ function renderSubjects(result) {
   const chart = result.subject_summary.slice().sort((a, b) => a.average - b.average).slice(0, 12).map(item => ({label: item.subject, value: item.average, display: formatNumber(item.average)}));
   el.subjectsTab.innerHTML = `<section class="section-block"><h3>متوسطات المواد</h3>${buildTable(["المادة", "متوسط الدرجة", "عدد الطلاب"], rows, 0)}<h3>المواد الأقل متوسطًا</h3>${buildBarChart(chart, "%")}</section>`;
 }
+function renderFinalExams(result) {
+  const mode = MODES[result.mode_id];
+  if (!mode.supportsFinalExams) {
+    el.finalExamsTab.innerHTML = "";
+    return;
+  }
+  if (!result.final_exam_summary.length) {
+    el.finalExamsTab.innerHTML = `<div class="narrative"><strong>لم يتم العثور على درجات اختبار نهاية الفصل.</strong><p>لإظهار ضعاف المواد ارفع ملفات النتائج التفصيلية التي يظهر فيها عمود «اختبار نهاية الفصل» داخل كشف كل طالب. ملفات المعدلات أو النتائج المجمعة فقط لا تحتوي على التفاصيل اللازمة.</p></div>`;
+    return;
+  }
+  const summaryRows = result.final_exam_summary.map(item => [item.grade_name, item.subject, formatNumber(item.max_score, 2), item.students, item.weak_count, `${formatNumber(item.weak_rate)}%`, `${formatNumber(item.average_percent)}%`]);
+  const hasClasses = result.final_exam_weak_students.some(item => item.class_label);
+  const detailHeaders = hasClasses
+    ? ["م", "اسم الطالب", "الصف", "الفصل", "المادة", "الدرجة", "الدرجة القصوى", "النسبة"]
+    : ["م", "اسم الطالب", "الصف", "المادة", "الدرجة", "الدرجة القصوى", "النسبة"];
+  const detailRows = result.final_exam_weak_students.map((item, index) => hasClasses
+    ? [index + 1, item.student_name, item.grade_name, item.class_label, item.subject, formatNumber(item.score, 2), formatNumber(item.max_score, 2), `${formatNumber(item.percentage)}%`]
+    : [index + 1, item.student_name, item.grade_name, item.subject, formatNumber(item.score, 2), formatNumber(item.max_score, 2), `${formatNumber(item.percentage)}%`]);
+  const weakDetails = detailRows.length
+    ? buildTable(detailHeaders, detailRows, 1)
+    : `<div class="narrative">لا يوجد طلاب أقل من ${result.final_exam_threshold}% في اختبار نهاية الفصل.</div>`;
+  el.finalExamsTab.innerHTML = `
+    <section class="section-block">
+      <h3>ملخص ضعف المواد في اختبار نهاية الفصل — أقل من ${result.final_exam_threshold}%</h3>
+      <div class="narrative">تُحسب النسبة بقسمة درجة الطالب في اختبار نهاية الفصل على الدرجة القصوى للاختبار في المادة. الحد الافتراضي أقل من 50%، ويمكن تعديله قبل التحليل. المواد التي لا تحتوي على اختبار نهاية فصل تُستبعد تلقائيًا.</div>
+      ${buildTable(["الصف", "المادة", "الدرجة القصوى", "الطلاب المقيمون", "عدد الضعاف", "نسبة الضعف", "متوسط الاختبار"], summaryRows, 1)}
+      <h3>قائمة الطلاب الضعاف حسب المادة <span class="badge danger">${result.final_exam_weak_count} حالة</span></h3>
+      ${weakDetails}
+    </section>`;
+}
+
 function renderShortTests(result) {
   if (result.mode_id !== "period") {
     el.shortTestsTab.innerHTML = "";
@@ -1266,8 +1514,13 @@ function renderResult(result) {
   const hasClassAnalysis = mode.supportsClassAnalysis && Object.keys(result.classes).length > 0;
   el.classesTabButton.hidden = !hasClassAnalysis;
   el.shortTestsTabButton.hidden = !mode.supportsShortTests;
+  el.finalExamsTabButton.hidden = !mode.supportsFinalExams;
   const activeTab = document.querySelector(".tab.active")?.dataset.tab;
-  if ((!hasClassAnalysis && activeTab === "classes") || (!mode.supportsShortTests && activeTab === "shortTests")) setActiveTab("overview");
+  if (
+    (!hasClassAnalysis && activeTab === "classes") ||
+    (!mode.supportsShortTests && activeTab === "shortTests") ||
+    (!mode.supportsFinalExams && activeTab === "finalExams")
+  ) setActiveTab("overview");
   el.resultModeBadge.textContent = mode.name;
   const school = result.metadata.school_name || result.school_name_detected || "المدرسة";
   const year = result.metadata.academic_year || result.academic_year_hijri_detected || "";
@@ -1284,6 +1537,7 @@ function renderResult(result) {
   renderTop(result);
   renderRisk(result);
   renderSubjects(result);
+  renderFinalExams(result);
   renderShortTests(result);
   setActiveTab("overview");
   el.resultsPanel.scrollIntoView({behavior: "smooth", block: "start"});
@@ -1295,8 +1549,8 @@ function reportTable(headers, rows) {
 function reportObjectives(modeId) {
   if (modeId === "past") return [
     "الوقوف على المستوى الفعلي للطلاب من واقع نتائج العام الماضي.", "التعرف على نسب الطلاب في مستويات التحصيل المختلفة على مستوى كل صف.",
-    "مقارنة متوسطات الصفوف الثلاثة وتحديد الصف الأعلى أداءً.", "حصر العشرة الأوائل في كل صف وتقديم برامج إثرائية مناسبة لهم.",
-    "تحديد الطلاب الأولى بالرعاية ووضع توصيات داعمة لهم.", "الخروج بتوصيات وفقًا لمؤشرات التقرير."
+    "مقارنة متوسطات الصفوف المرفوعة وتحديد الصف الأعلى أداءً.", "حصر العشرة الأوائل في كل صف وتقديم برامج إثرائية مناسبة لهم.",
+    "تحديد الطلاب الأولى بالرعاية ووضع توصيات داعمة لهم.", "رصد ضعاف المواد في اختبار نهاية الفصل وفق نسبة ضعف قابلة للتعديل.", "الخروج بتوصيات وفقًا لمؤشرات التقرير."
   ];
   if (modeId === "period") return [
     "الوقوف على المستوى الفعلي للطلاب خلال الفترة المحددة.", "تحليل مستويات التحصيل على مستوى كل صف وكل فصل.",
@@ -1306,7 +1560,7 @@ function reportObjectives(modeId) {
   return [
     "الوقوف على المستوى الفعلي للطلاب من واقع الاختبارات.", "التعرف على نسبة الطلاب الممتازين والعمل على زيادتها.",
     "التعرف على الطلاب الحاصلين على جيد أو أقل وتقديم البرامج المناسبة لهم.", "المقارنة بين فصول الصف الواحد ومعرفة الفروق في المستوى التحصيلي.",
-    "مقارنة متوسط كل فصل وتعزيز أعلى نسبة.", "حصر العشرة الأوائل في كل صف وأفضل خمسة طلاب في كل فصل.", "الخروج بتوصيات وفقًا لنتائج التقرير."
+    "مقارنة متوسط كل فصل وتعزيز أعلى نسبة.", "حصر العشرة الأوائل في كل صف وأفضل خمسة طلاب في كل فصل.", "رصد ضعاف المواد في اختبار نهاية الفصل وفق نسبة ضعف قابلة للتعديل.", "الخروج بتوصيات وفقًا لنتائج التقرير."
   ];
 }
 function wordReportHtml(result, brandLogos = {}) {
@@ -1324,10 +1578,10 @@ function wordReportHtml(result, brandLogos = {}) {
   ]);
   const objectives = reportObjectives(result.mode_id);
   const mechanism = result.mode_id === "past"
-    ? ["توزيع الطلاب على مستويات: 100%، ممتاز، جيد جدًا، جيد، مقبول.", "إعداد إحصائية مجمعة لكل صف على حدة.", "حساب متوسطات الصفوف والمواد وحصر العشرة الأوائل والطلاب الأولى بالرعاية."]
+    ? ["توزيع الطلاب على مستويات: 100%، ممتاز، جيد جدًا، جيد، مقبول.", "إعداد إحصائية مجمعة لكل صف على حدة.", "حساب متوسطات الصفوف والمواد وحصر العشرة الأوائل والطلاب الأولى بالرعاية.", `تحويل درجات اختبار نهاية الفصل إلى نسب مئوية ورصد النتائج الأقل من ${result.final_exam_threshold}%.`]
     : result.mode_id === "period"
       ? ["استخراج المعدل من الملف، أو حسابه تلقائيًا من مجموع درجات المواد ودرجاتها القصوى عند غيابه.", "توزيع الطلاب على مستويات التحصيل وحساب متوسط كل صف وكل فصل وحصر الأوائل والطلاب الأولى بالرعاية.", "إعداد جدول تحليل مستقل لفصول كل صف وحصر أفضل خمسة طلاب في كل فصل.", `تحويل درجات الاختبارات القصيرة إلى نسب مئوية ورصد النسب الأقل من ${result.short_test_threshold}%.`]
-      : ["توزيع الطلاب على مستويات: 100%، ممتاز، جيد جدًا، جيد، مقبول، ضعيف.", "إعداد إحصائية مجمعة لكل فصل ولكل صف.", "حساب متوسطات الفصول والمواد وتحديد الطلاب الأولى بالرعاية والأوائل."];
+      : ["توزيع الطلاب على مستويات: 100%، ممتاز، جيد جدًا، جيد، مقبول، ضعيف.", "إعداد إحصائية مجمعة لكل فصل ولكل صف.", "حساب متوسطات الفصول والمواد وتحديد الطلاب الأولى بالرعاية والأوائل.", `تحويل درجات اختبار نهاية الفصل إلى نسب مئوية ورصد النتائج الأقل من ${result.final_exam_threshold}%.`];
 
   const schoolLogo = brandLogos.school || BRAND_ASSETS.school;
   const guidanceLogo = brandLogos.guidance || BRAND_ASSETS.guidance;
@@ -1390,6 +1644,18 @@ function wordReportHtml(result, brandLogos = {}) {
       : [index + 1, item.student_name, item.grade_name, `${formatNumber(item.average)}%`]);
     body += `<h2>الطلاب الأولى بالرعاية</h2>${rows.length ? reportTable(headers, rows) : "<p>لا يوجد طلاب أقل من الحد المحدد.</p>"}`;
   }
+  if (mode.supportsFinalExams) {
+    body += `<h2>ضعاف المواد في اختبار نهاية الفصل — أقل من ${result.final_exam_threshold}%</h2>`;
+    if (result.final_exam_summary.length) {
+      body += reportTable(["الصف", "المادة", "الدرجة القصوى", "الطلاب", "عدد الضعاف", "نسبة الضعف", "متوسط الاختبار"], result.final_exam_summary.map(item => [item.grade_name, item.subject, formatNumber(item.max_score, 2), item.students, item.weak_count, `${formatNumber(item.weak_rate)}%`, `${formatNumber(item.average_percent)}%`]));
+      if (metadata.include_names) {
+        if (result.final_exam_weak_students.length) body += hasClassAnalysis
+          ? reportTable(["م", "اسم الطالب", "الصف", "الفصل", "المادة", "الدرجة", "الدرجة القصوى", "النسبة"], result.final_exam_weak_students.map((item, index) => [index + 1, item.student_name, item.grade_name, item.class_label, item.subject, formatNumber(item.score, 2), formatNumber(item.max_score, 2), `${formatNumber(item.percentage)}%`]))
+          : reportTable(["م", "اسم الطالب", "الصف", "المادة", "الدرجة", "الدرجة القصوى", "النسبة"], result.final_exam_weak_students.map((item, index) => [index + 1, item.student_name, item.grade_name, item.subject, formatNumber(item.score, 2), formatNumber(item.max_score, 2), `${formatNumber(item.percentage)}%`]));
+        else body += `<p>لا يوجد طلاب أقل من ${result.final_exam_threshold}% في اختبار نهاية الفصل.</p>`;
+      }
+    } else body += `<p>لم تتوافر درجات تفصيلية لاختبار نهاية الفصل في الملفات المرفوعة.</p>`;
+  }
   if (result.mode_id === "period") {
     body += `<h2>ضعاف المواد في الاختبار القصير — أقل من ${result.short_test_threshold}%</h2>`;
     if (result.short_test_summary.length) {
@@ -1448,8 +1714,10 @@ async function analyzeFiles() {
   }
   const threshold = Number(el.threshold.value || 85);
   const shortTestThreshold = Number(el.shortTestThreshold.value || 50);
+  const finalExamThreshold = Number(el.finalExamThreshold.value || 50);
   if (!(threshold >= 0 && threshold <= 100)) { showStatus("حد الرعاية يجب أن يكون بين 0 و100.", true); return; }
   if (!(shortTestThreshold >= 0 && shortTestThreshold <= 100)) { showStatus("نسبة ضعف الاختبار القصير يجب أن تكون بين 0 و100.", true); return; }
+  if (!(finalExamThreshold >= 0 && finalExamThreshold <= 100)) { showStatus("نسبة ضعف اختبار نهاية الفصل يجب أن تكون بين 0 و100.", true); return; }
 
   el.analyzeButton.disabled = true;
   el.analyzeButton.textContent = "جارٍ التحليل...";
@@ -1462,7 +1730,7 @@ async function analyzeFiles() {
       records = records.concat(await parseWorkbook(item.file, item.grade, state.mode));
     }
     if (state.mode === "period") records = mergePeriodRecords(records, state.mode);
-    const result = analyzeRecords(records, threshold, el.notes.value, state.mode, shortTestThreshold);
+    const result = analyzeRecords(records, threshold, el.notes.value, state.mode, shortTestThreshold, finalExamThreshold);
     result.metadata = {
       school_name: cleanText(el.schoolName.value),
       academic_year: cleanText(el.academicYear.value),
@@ -1510,4 +1778,4 @@ el.printButton.addEventListener("click", () => window.print());
 setupTabs();
 renderFileList();
 
-window.__APP_TEST__ = {selectMode, parseWorkbook, analyzeRecords, classifyAverage, parseTabularPeriodSheet, extractSubjectDetails, mergePeriodRecords, inferClassNumber, categoriesWithData, categoryLabel, formatArabicList, renderOverview, renderClasses, wordReportHtml, getMode: id => MODES[id], getState: () => state};
+window.__APP_TEST__ = {selectMode, parseWorkbook, analyzeRecords, classifyAverage, parseTabularPeriodSheet, extractSubjectDetails, finalizeFinalExamRecords, inferFinalExamMax, mergePeriodRecords, inferGrade, inferClassNumber, gradeOrdinal, makeClassLabel, gradeOptionsHtml, categoriesWithData, categoryLabel, formatArabicList, renderOverview, renderClasses, wordReportHtml, getMode: id => MODES[id], getState: () => state};

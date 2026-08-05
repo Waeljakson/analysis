@@ -976,6 +976,7 @@ tbody tr:last-child td { border-bottom: 0; }
   .tab-content { display: block !important; }
   .tab-content#classesTab:not(:empty),
   .tab-content#topTab:not(:empty),
+  .tab-content#finalExamsTab:not(:empty),
   .tab-content#shortTestsTab:not(:empty) {
     page-break-before: always;
     break-before: page;

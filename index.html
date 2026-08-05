@@ -64,7 +64,7 @@
         <div>
           <span class="section-kicker">ابدأ التحليل</span>
           <h2 id="modeHeading">اختر نوع التقرير المطلوب</h2>
-          <p>كل مسار مُهيأ لقراءة بنية مختلفة من ملفات النتائج وإظهار المؤشرات المناسبة لها.</p>
+          <p>يدعم التحليل جميع الصفوف من الأول الابتدائي حتى الثالث الثانوي، مع قراءة بنية الملفات وإظهار المؤشرات المناسبة لها.</p>
         </div>
       </div>
 
@@ -76,7 +76,7 @@
           </span>
           <span class="mode-copy">
             <strong>تحليل نتيجة العام الماضي</strong>
-            <small>قراءة النتائج النهائية على مستوى الصفوف دون اشتراط وجود أرقام للفصول.</small>
+            <small>قراءة النتائج النهائية على مستوى الصفوف، مع رصد ضعاف المواد في اختبار نهاية الفصل عند توافر الدرجات التفصيلية.</small>
           </span>
           <span class="mode-check">✓</span>
         </button>
@@ -88,7 +88,7 @@
           </span>
           <span class="mode-copy">
             <strong>نتيجة الفصل الدراسي</strong>
-            <small>تحليل الصفوف والفصول، وجدول مستقل للفصول، وأفضل خمسة طلاب في كل فصل.</small>
+            <small>تحليل الصفوف والفصول، وأفضل خمسة طلاب في كل فصل، ورصد ضعاف المواد في اختبار نهاية الفصل.</small>
           </span>
           <span class="mode-check">✓</span>
         </button>
@@ -179,6 +179,14 @@
           </div>
           <small class="field-help">القيمة الافتراضية 50%. يمكن تعديلها وإعادة التحليل فورًا.</small>
         </label>
+        <label id="finalExamThresholdRow" hidden>
+          <span>نسبة الضعف في اختبار نهاية الفصل — أقل من</span>
+          <div class="input-suffix">
+            <input id="finalExamThreshold" type="number" min="0" max="100" step="0.1" value="50">
+            <span>%</span>
+          </div>
+          <small class="field-help">القيمة الافتراضية أقل من 50%. تُحسب النسبة من درجة الطالب مقارنة بالدرجة القصوى للاختبار.</small>
+        </label>
         <label class="checkbox-label">
           <input id="includeNames" type="checkbox" checked>
           <span>إظهار أسماء الطلاب في تقرير Word</span>
@@ -199,7 +207,7 @@
       <div id="statusBox" class="status-box" hidden></div>
       <details class="help-box">
         <summary>إرشادات الاستخدام</summary>
-        <p id="usageHelp">استخدم Google Chrome أو Microsoft Edge، اختر ملفات Excel وحدد الصف الصحيح لكل ملف، ثم اضغط «تحليل النتائج».</p>
+        <p id="usageHelp">استخدم Google Chrome أو Microsoft Edge، اختر ملفات Excel وحدد الصف الصحيح من الأول الابتدائي حتى الثالث الثانوي لكل ملف، ثم اضغط «تحليل النتائج».</p>
       </details>
     </section>
 
@@ -258,6 +266,7 @@
         <button class="tab" data-tab="top">الأوائل</button>
         <button class="tab" data-tab="risk">الأولى بالرعاية</button>
         <button class="tab" data-tab="subjects">المواد</button>
+        <button id="finalExamsTabButton" class="tab" data-tab="finalExams" hidden>ضعاف اختبار نهاية الفصل</button>
         <button id="shortTestsTabButton" class="tab" data-tab="shortTests" hidden>ضعاف الاختبار القصير</button>
       </nav>
 
@@ -266,6 +275,7 @@
       <div id="topTab" class="tab-content"></div>
       <div id="riskTab" class="tab-content"></div>
       <div id="subjectsTab" class="tab-content"></div>
+      <div id="finalExamsTab" class="tab-content"></div>
       <div id="shortTestsTab" class="tab-content"></div>
     </section>
   </main>
