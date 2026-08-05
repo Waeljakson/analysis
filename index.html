@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="theme-color" content="#0b628f">
+  <meta name="description" content="منصة مدارس المشكاة الأهلية لتحليل نتائج الطلاب والفترات والاختبارات القصيرة من ملفات Excel وإصدار تقارير مدرسية احترافية.">
+  <title>منصة تحليل النتائج | مدارس المشكاة الأهلية</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="top-ribbon" aria-hidden="true"></div>
+
+  <header class="app-header">
+    <div class="header-orb orb-one" aria-hidden="true"></div>
+    <div class="header-orb orb-two" aria-hidden="true"></div>
+    <div class="header-grid" aria-hidden="true"></div>
+
+    <div class="header-shell">
+      <div class="hero-copy">
+        <div class="hero-eyebrow">
+          <span class="eyebrow-dot"></span>
+          المملكة العربية السعودية · وزارة التعليم
+        </div>
+        <h1>منصة التحليل الذكي<br><span>للنتائج التعليمية</span></h1>
+        <p>حل رقمي متكامل لتحويل ملفات Excel إلى مؤشرات واضحة، تقارير تنفيذية، وقوائم متابعة تدعم القرار التربوي.</p>
+        <div class="hero-features" aria-label="مزايا المنصة">
+          <span><b>✓</b> معالجة آمنة داخل المتصفح</span>
+          <span><b>✓</b> تقارير Word وPDF</span>
+          <span><b>✓</b> تحليل الصفوف والمواد</span>
+        </div>
+      </div>
+
+      <div class="brand-stage" aria-label="هوية المدرسة والتوجيه الطلابي">
+        <div class="brand-stage-glow" aria-hidden="true"></div>
+        <div class="school-identity">
+          <div class="logo-card school-logo-card">
+            <img src="assets/school-logo.png" alt="شعار مدارس المشكاة الأهلية">
+          </div>
+          <div class="school-copy">
+            <span>مدارس المشكاة الأهلية بالدمام</span>
+            <strong>إدارة التوجيه الطلابي</strong>
+          </div>
+        </div>
+        <div class="guidance-card">
+          <img src="assets/student-guidance-logo.png" alt="شعار التوجيه الطلابي">
+        </div>
+      </div>
+    </div>
+
+    <div class="header-wave" aria-hidden="true"></div>
+  </header>
+
+  <main class="layout">
+    <section class="panel mode-panel" aria-labelledby="modeHeading">
+      <div class="panel-accent" aria-hidden="true"></div>
+      <div class="section-title premium-title">
+        <span class="step">01</span>
+        <div>
+          <span class="section-kicker">ابدأ التحليل</span>
+          <h2 id="modeHeading">اختر نوع التقرير المطلوب</h2>
+          <p>كل مسار مُهيأ لقراءة بنية مختلفة من ملفات النتائج وإظهار المؤشرات المناسبة لها.</p>
+        </div>
+      </div>
+
+      <div class="mode-grid" role="radiogroup" aria-label="نوع تحليل النتيجة">
+        <button class="mode-card past-card" type="button" data-mode="past" role="radio" aria-checked="false">
+          <span class="mode-ribbon">مقارنة تاريخية</span>
+          <span class="mode-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img"><path d="M24 7a17 17 0 1 1-15.6 10.2" class="icon-line"/><path d="M8 8v10h10" class="icon-line"/><path d="M24 15v10l7 4" class="icon-line"/></svg>
+          </span>
+          <span class="mode-copy">
+            <strong>تحليل نتيجة العام الماضي</strong>
+            <small>قراءة النتائج النهائية على مستوى الصفوف دون اشتراط وجود أرقام للفصول.</small>
+          </span>
+          <span class="mode-check">✓</span>
+        </button>
+
+        <button class="mode-card semester-card" type="button" data-mode="semester" role="radio" aria-checked="false">
+          <span class="mode-ribbon">تحليل شامل</span>
+          <span class="mode-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img"><path d="M8 38V24h7v14H8Zm12 0V14h7v24h-7Zm12 0V8h7v30h-7Z"/><path class="icon-line" d="M6 40h36"/></svg>
+          </span>
+          <span class="mode-copy">
+            <strong>نتيجة الفصل الدراسي</strong>
+            <small>تحليل الصفوف والفصول، وجدول مستقل للفصول، وأفضل خمسة طلاب في كل فصل.</small>
+          </span>
+          <span class="mode-check">✓</span>
+        </button>
+
+        <button class="mode-card period-card" type="button" data-mode="period" role="radio" aria-checked="false">
+          <span class="mode-ribbon">متابعة سريعة</span>
+          <span class="mode-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img"><path d="M7 25h8l4-10 7 20 5-10h10" class="icon-line"/><path d="M10 8h28a4 4 0 0 1 4 4v24a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V12a4 4 0 0 1 4-4Z" class="icon-line soft"/></svg>
+          </span>
+          <span class="mode-copy">
+            <strong>تحليل الفترة</strong>
+            <small>تحليل الفصول وأفضل خمسة طلاب بكل فصل، مع رصد ضعاف الاختبارات القصيرة.</small>
+          </span>
+          <span class="mode-check">✓</span>
+        </button>
+      </div>
+      <p id="modeHint" class="selection-hint">اختر المسار الذي يتوافق مع نوع ملفات النتائج المتاحة.</p>
+    </section>
+
+    <section id="setupPanel" class="panel setup-panel" hidden>
+      <div class="panel-watermark" aria-hidden="true"><img src="assets/school-logo.png" alt=""></div>
+      <div class="selected-mode-bar">
+        <div>
+          <span>المسار النشط</span>
+          <strong id="selectedModeName"></strong>
+        </div>
+        <span class="live-indicator"><i></i> جاهز لاستقبال الملفات</span>
+      </div>
+
+      <div class="section-title premium-title">
+        <span class="step">02</span>
+        <div>
+          <span class="section-kicker">مصدر البيانات</span>
+          <h2>ارفع ملفات النتائج</h2>
+          <p id="filesHelp">اختر ملفات النتائج. في تحليل الفترة تكفي الكشوف التفصيلية؛ سيحسب التطبيق المعدل تلقائيًا من درجات المواد، ويمكن أيضًا دمجها مع ملف معدلات إن وُجد.</p>
+        </div>
+      </div>
+
+      <label class="drop-zone" id="dropZone" for="fileInput">
+        <input id="fileInput" type="file" accept=".xlsx" multiple hidden>
+        <span class="upload-visual" aria-hidden="true">
+          <svg viewBox="0 0 64 64"><path d="M32 43V15m0 0L21 26m11-11 11 11"/><path d="M14 39v8a6 6 0 0 0 6 6h24a6 6 0 0 0 6-6v-8"/></svg>
+        </span>
+        <strong>اسحب ملفات Excel هنا</strong>
+        <span class="drop-action">أو اضغط لاختيار الملفات من جهازك</span>
+        <small>الصيغة المدعومة XLSX · تتم المعالجة محليًا ولا تُرفع بيانات الطلاب إلى أي خادم</small>
+      </label>
+      <div id="fileList" class="file-list empty-state">لم يتم اختيار ملفات.</div>
+
+      <div class="section-title premium-title compact">
+        <span class="step">03</span>
+        <div>
+          <span class="section-kicker">هوية التقرير</span>
+          <h2>بيانات التقرير وإعداداته</h2>
+          <p>يمكن ترك اسم المدرسة والعام الدراسي فارغين لاستخراجهما تلقائيًا من الملفات.</p>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <label>
+          <span>عنوان التقرير</span>
+          <input id="reportTitle" type="text">
+        </label>
+        <label>
+          <span>الفترة</span>
+          <input id="period" type="text">
+        </label>
+        <label>
+          <span>اسم المدرسة</span>
+          <input id="schoolName" type="text" placeholder="يُستخرج تلقائيًا">
+        </label>
+        <label>
+          <span>العام الدراسي</span>
+          <input id="academicYear" type="text" placeholder="مثال: 1447هـ أو 1447/1448">
+        </label>
+        <label>
+          <span>حد الطلاب الأولى بالرعاية</span>
+          <div class="input-suffix">
+            <input id="threshold" type="number" min="0" max="100" step="0.1" value="85">
+            <span>%</span>
+          </div>
+        </label>
+        <label id="shortTestThresholdRow" hidden>
+          <span>نسبة الضعف في الاختبار القصير — أقل من</span>
+          <div class="input-suffix">
+            <input id="shortTestThreshold" type="number" min="0" max="100" step="0.1" value="50">
+            <span>%</span>
+          </div>
+          <small class="field-help">القيمة الافتراضية 50%. يمكن تعديلها وإعادة التحليل فورًا.</small>
+        </label>
+        <label class="checkbox-label">
+          <input id="includeNames" type="checkbox" checked>
+          <span>إظهار أسماء الطلاب في تقرير Word</span>
+        </label>
+        <label class="full-width">
+          <span>ملاحظات المدرسة النوعية</span>
+          <textarea id="notes" rows="4"></textarea>
+        </label>
+      </div>
+
+      <div class="actions main-actions">
+        <button id="analyzeButton" class="primary-button" type="button">
+          <span>تحليل النتائج</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+        <button id="resetButton" class="secondary-button" type="button">إعادة ضبط الملفات</button>
+      </div>
+      <div id="statusBox" class="status-box" hidden></div>
+      <details class="help-box">
+        <summary>إرشادات الاستخدام</summary>
+        <p id="usageHelp">استخدم Google Chrome أو Microsoft Edge، اختر ملفات Excel وحدد الصف الصحيح لكل ملف، ثم اضغط «تحليل النتائج».</p>
+      </details>
+    </section>
+
+    <section id="resultsPanel" class="panel results-panel" hidden>
+      <div id="printCover" class="print-cover" aria-hidden="true">
+        <div class="print-cover-header">
+          <img src="assets/school-logo.png" alt="شعار مدارس المشكاة الأهلية">
+          <div>
+            <span>المملكة العربية السعودية</span>
+            <strong>مدارس المشكاة الأهلية</strong>
+            <small>إدارة التوجيه الطلابي</small>
+          </div>
+          <img class="print-cover-guidance" src="assets/student-guidance-logo.png" alt="شعار التوجيه الطلابي">
+        </div>
+        <div class="print-cover-accent"><i></i><i></i><i></i></div>
+        <div class="print-cover-content">
+          <span class="print-cover-label">تقرير تحليلي</span>
+          <h1 id="printReportTitle">تحليل النتائج التعليمية</h1>
+          <h2 id="printSchoolName">مدارس المشكاة الأهلية</h2>
+          <p id="printPeriodYear"></p>
+        </div>
+        <div class="print-cover-bottom">منصة التحليل الذكي للنتائج التعليمية</div>
+      </div>
+
+      <div class="print-page-footer" aria-hidden="true">
+        <span>مدارس المشكاة الأهلية</span>
+        <span>إدارة التوجيه الطلابي</span>
+      </div>
+
+      <div class="report-brand">
+        <img class="report-school-logo" src="assets/school-logo.png" alt="شعار المدرسة">
+        <div>
+          <span>مدارس المشكاة الأهلية بالدمام</span>
+          <strong>لوحة مؤشرات التحصيل الدراسي</strong>
+        </div>
+        <img class="report-guidance-logo" src="assets/student-guidance-logo.png" alt="شعار التوجيه الطلابي">
+      </div>
+
+      <div class="results-header">
+        <div>
+          <span id="resultModeBadge" class="result-mode-badge"></span>
+          <h2>نتيجة التحليل</h2>
+          <p id="resultsSubtitle"></p>
+        </div>
+        <div class="actions inline-actions">
+          <button id="exportButton" class="primary-button" type="button">تصدير Word</button>
+          <button id="printButton" class="secondary-button" type="button">طباعة / PDF</button>
+        </div>
+      </div>
+
+      <div id="kpiGrid" class="kpi-grid"></div>
+
+      <nav class="tabs" aria-label="أقسام التحليل">
+        <button class="tab active" data-tab="overview">الملخص العام</button>
+        <button id="classesTabButton" class="tab" data-tab="classes">الفصول</button>
+        <button class="tab" data-tab="top">الأوائل</button>
+        <button class="tab" data-tab="risk">الأولى بالرعاية</button>
+        <button class="tab" data-tab="subjects">المواد</button>
+        <button id="shortTestsTabButton" class="tab" data-tab="shortTests" hidden>ضعاف الاختبار القصير</button>
+      </nav>
+
+      <div id="overviewTab" class="tab-content active"></div>
+      <div id="classesTab" class="tab-content"></div>
+      <div id="topTab" class="tab-content"></div>
+      <div id="riskTab" class="tab-content"></div>
+      <div id="subjectsTab" class="tab-content"></div>
+      <div id="shortTestsTab" class="tab-content"></div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div class="footer-shell">
+      <div class="footer-brand">
+        <img src="assets/school-logo.png" alt="شعار المدرسة">
+        <div><strong>مدارس المشكاة الأهلية</strong><span>منصة تحليل النتائج التعليمية</span></div>
+      </div>
+      <p>تطبيق ويب ثابت يعمل بالكامل داخل المتصفح ولا يحتاج إلى خادم أو قاعدة بيانات.</p>
+      <img class="footer-guidance" src="assets/student-guidance-logo.png" alt="شعار التوجيه الطلابي">
+    </div>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
