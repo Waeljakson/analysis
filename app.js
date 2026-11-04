@@ -504,12 +504,24 @@ function findClassNumber(cells) {
   return /^\d{1,2}$/.test(fallback) ? fallback : null;
 }
 function findStudentName(cells) {
+  // Earlier exports combine the label and value; period notices put the label
+  // in U19 and the actual student name in B19.
   for (const val of Object.values(cells)) {
     if (typeof val !== "string") continue;
     const m = cleanText(val).match(/^اسم الطالب\s*:\s*(.+)$/);
     if (m) return m[1].trim();
   }
-  return null;
+  const label = findLabel(cells, ["اسم الطالب:", "اسم الطالب", "Student Name:", "Student Name"]);
+  if (!label) return null;
+  const [labelCol, row] = splitRef(label[0]);
+  const matches = Object.entries(cells)
+    .map(([ref, value]) => ({ref, value, pos: splitRef(ref)}))
+    .filter(item => item.pos[1] === row && item.pos[0] < labelCol &&
+      typeof item.value === "string" && cleanText(item.value).length > 2 &&
+      !/^(?:اسم الطالب|student name)\s*:?$/i.test(cleanText(item.value)) &&
+      !/^\d+$/.test(cleanText(item.value)));
+  matches.sort((x, y) => x.pos[0] - y.pos[0]);
+  return matches.length ? cleanText(matches[0].value) : null;
 }
 function findSchoolName(cells) {
   for (const val of Object.values(cells)) {
@@ -534,7 +546,7 @@ function findYears(cells) {
   for (const val of Object.values(cells)) {
     if (typeof val !== "string") continue;
     const txt = cleanText(val);
-    if (/^14\d{2}(?:\/14\d{2})?$/.test(txt)) hijri = txt;
+    if (/^14\d{2}(?:[-\/]14\d{2})?$/.test(txt)) hijri = txt;
     else if (/^20\d{2}(?:\/20\d{2})?$/.test(txt)) gregorian = txt;
   }
   return [hijri, gregorian];
@@ -576,6 +588,51 @@ function extractSubjectDetails(cells) {
   const subjects = {};
   const short_tests = {};
   const subject_details = {};
+
+  // Saudi middle-school first-period notices: each workbook tab is one student.
+  // Subject/max/earned are in U/C/F, and the grouped short-test columns are O:R.
+  // The official grand-total row is authoritative when some student scores are blank.
+  const noticeHeader = Object.entries(cells).find(([ref, value]) => {
+    const [, row] = splitRef(ref);
+    return normalizeArabic(value) === normalizeArabic("المادة") &&
+      normalizeArabic(cells[`F${row}`]) === normalizeArabic("مجموع") &&
+      normalizeArabic(cells[`C${row}`]) === normalizeArabic("النهاية العظمى") &&
+      normalizeArabic(cells[`O${row}`]).includes(normalizeArabic("اختبارات قصيرة"));
+  });
+  if (noticeHeader) {
+    const [, headerRow] = splitRef(noticeHeader[0]);
+    let overall_total = null;
+    let overall_max = null;
+    for (let row = headerRow + 1; row <= Math.min(maxRowNumber(cells), headerRow + 60); row++) {
+      const subject = cleanText(cells[`U${row}`]).replace(/^[*＊\\s]+/u, "").trim();
+      if (!subject) continue;
+      if (normalizeArabic(subject) === normalizeArabic("المجموع")) {
+        const earned = Number(cells[`F${row}`]);
+        const possible = Number(cells[`C${row}`]);
+        if (Number.isFinite(earned)) overall_total = earned;
+        if (Number.isFinite(possible) && possible > 0) overall_max = possible;
+        break;
+      }
+      const max = Number(cells[`C${row}`]);
+      if (!Number.isFinite(max) || max <= 0 || max > 100) continue;
+      if (!validSubjectName(subject) && normalizeArabic(subject) !== normalizeArabic("النشاط")) continue;
+      const total = parsePercentage(cells[`F${row}`]);
+      let short = null;
+      for (const col of ["O", "P", "Q", "R"]) {
+        const raw = cells[`${col}${row}`];
+        if (raw === undefined || raw === null || cleanText(raw) === "") continue;
+        const value = parsePercentage(raw);
+        if (value !== null) { short = value; break; }
+      }
+      // In this export, 60-point core subjects have a 20-point short test.
+      // The 100-point subjects assessed in these columns have a 60-point test.
+      const shortMax = short === null ? null : (max > 60 ? 60 : 20);
+      subject_details[subject] = {total, max, short, short_max: shortMax, evaluation: null, final_exam: null};
+      if (total !== null) subjects[subject] = total;
+      if (short !== null) short_tests[subject] = short;
+    }
+    return {subjects, short_tests, subject_details, table_kind: "saudi_period_notice", overall_total, overall_max};
+  }
 
   // تحديد أعمدة جدول المواد ديناميكيًا لأن مواقع الأعمدة تختلف بين
   // إشعار الفترة والنتيجة الفصلية.
@@ -651,7 +708,9 @@ function inferPeriodProfiles(records) {
   }
   const profiles = {};
   for (const [subject, samples] of grouped.entries()) {
-    const numbers = key => samples.map(item => Number(item[key])).filter(Number.isFinite);
+    const numbers = key => samples.map(item => item[key] === null || item[key] === undefined || item[key] === "" ? NaN : Number(item[key])).filter(Number.isFinite);
+    const explicitMaxima = numbers("max").filter(n => n > 0);
+    const explicitShortMaxima = numbers("short_max").filter(n => n > 0);
     const totals = numbers("total");
     const evaluations = numbers("evaluation");
     const finals = numbers("final_exam");
@@ -659,7 +718,8 @@ function inferPeriodProfiles(records) {
     const isPercentageTable = samples.some(item => item.table_kind === "percentage");
     const normalizedSubject = normalizeArabic(subject);
     let totalMax;
-    if (isPercentageTable) totalMax = 100;
+    if (explicitMaxima.length) totalMax = Math.max(...explicitMaxima);
+    else if (isPercentageTable) totalMax = 100;
     else if (
       PERIOD_100_POINT_SUBJECTS.has(normalizedSubject) ||
       Math.max(0, ...totals) > 60.0001 ||
@@ -668,9 +728,9 @@ function inferPeriodProfiles(records) {
     ) totalMax = 100;
     else totalMax = 60;
 
-    let shortMax = 0;
+    let shortMax = explicitShortMaxima.length ? Math.max(...explicitShortMaxima) : 0;
     const maxShortObserved = Math.max(0, ...shorts);
-    if (maxShortObserved > 0) {
+    if (!shortMax && maxShortObserved > 0) {
       if (
         normalizedSubject.includes(normalizeArabic("التربية البدنية")) ||
         Math.max(0, ...evaluations) > 80.0001
@@ -694,13 +754,13 @@ function finalizePeriodDetailedRecords(records) {
     for (const [subject, detail] of Object.entries(record.subject_details || {})) {
       const profile = profiles[subject];
       if (!profile) continue;
-      const total = Number(detail.total);
+      const total = detail.total === null || detail.total === undefined || detail.total === "" ? NaN : Number(detail.total);
       if (Number.isFinite(total) && profile.total_max > 0) {
         earned += total;
         possible += profile.total_max;
         normalizedSubjects[subject] = Math.round(total / profile.total_max * 10000) / 100;
       }
-      const shortScore = Number(detail.short);
+      const shortScore = detail.short === null || detail.short === undefined || detail.short === "" ? NaN : Number(detail.short);
       if (Number.isFinite(shortScore) && profile.short_max > 0) {
         normalizedShortTests[subject] = {
           score: Math.round(shortScore * 100) / 100,
@@ -712,7 +772,11 @@ function finalizePeriodDetailedRecords(records) {
 
     record.subjects = Object.keys(normalizedSubjects).length ? normalizedSubjects : record.subjects;
     record.short_tests = normalizedShortTests;
-    if (!Number.isFinite(record.average) && possible > 0) {
+    if (!Number.isFinite(record.average) && Number.isFinite(record.notice_total) && Number.isFinite(record.notice_max) && record.notice_max > 0) {
+      record.average = Math.round(record.notice_total / record.notice_max * 1000000) / 10000;
+      record.average_source = "calculated";
+      record.average_calculation = {earned: record.notice_total, possible: record.notice_max};
+    } else if (!Number.isFinite(record.average) && possible > 0) {
       record.average = Math.round(earned / possible * 1000000) / 10000;
       record.average_source = "calculated";
       record.average_calculation = {earned: Math.round(earned * 100) / 100, possible};
@@ -896,6 +960,8 @@ async function parseWorkbook(file, gradeNumber, modeId = state.mode) {
       final_exams: {},
       subject_details: subjectDetails.subject_details,
       subject_table_kind: subjectDetails.table_kind,
+      notice_total: subjectDetails.overall_total,
+      notice_max: subjectDetails.overall_max,
       average_source: Number.isFinite(average) ? "file" : "pending_calculation",
       source_kind: "detailed"
     });
