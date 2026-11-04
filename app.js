@@ -604,7 +604,7 @@ function extractSubjectDetails(cells) {
     let overall_total = null;
     let overall_max = null;
     for (let row = headerRow + 1; row <= Math.min(maxRowNumber(cells), headerRow + 60); row++) {
-      const subject = cleanText(cells[`U${row}`]).replace(/^[*＊\\s]+/u, "").trim();
+      const subject = cleanText(cells[`U${row}`]).replace(/^[*＊]+/u, "").trim();
       if (!subject) continue;
       if (normalizeArabic(subject) === normalizeArabic("المجموع")) {
         const earned = Number(cells[`F${row}`]);
